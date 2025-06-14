@@ -229,15 +229,12 @@
                         <label for="numberOfSeasons" class="block text-gray-400 text-sm font-bold mb-2">Nombre de saisons :</label>
                         <input type="number" id="numberOfSeasons" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
                     </div>
-                    <div class="mb-6">
-                        <label for="numberOfEpisodesPerSeason" class="block text-gray-400 text-sm font-bold mb-2">Nombre d'épisodes par saison :</label>
-                        <input type="number" id="numberOfEpisodesPerSeason" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
-                    </div>
-                    <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateEpisodeInputs()">Générer champs d'épisodes</button>
                     
-                    <div id="episodeVideoInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
-                        <!-- Episode video input fields will be generated here -->
-                        <p class="text-gray-400 text-center">Cliquez sur "Générer champs d'épisodes" ci-dessus.</p>
+                    <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateSeasonEpisodeInputs()">Générer champs de saisons et d'épisodes</button>
+                    
+                    <div id="seasonEpisodeInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
+                        <!-- Season and Episode input fields will be generated here -->
+                        <p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d'épisodes" ci-dessus.</p>
                     </div>
                 </div>
 
@@ -250,7 +247,7 @@
     </div>
 
     <script type="module">
-        // Import statements are at the top due to type="module"
+        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -469,9 +466,8 @@
         const filmVideoUrlDiv = document.getElementById('filmVideoUrlDiv'); // Div containing film video URL input
         const contentType = document.getElementById('contentType'); // New select element
         const numberOfSeasonsInput = document.getElementById('numberOfSeasons'); // New
-        const numberOfEpisodesPerSeasonInput = document.getElementById('numberOfEpisodesPerSeason'); // New
         const seriesFieldsDiv = document.getElementById('seriesFields'); // New
-        const episodeVideoInputsContainer = document.getElementById('episodeVideoInputsContainer'); // New container for episode video inputs
+        const seasonEpisodeInputsContainer = document.getElementById('seasonEpisodeInputsContainer'); // New container for season/episode inputs
         const addContentForm = document.getElementById('addContentForm');
 
         // Made openAddModal global
@@ -482,7 +478,7 @@
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
             window.toggleSeriesFields(); // Ensure correct fields are shown/hidden on open
-            episodeVideoInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs d\'épisodes" ci-dessus.</p>'; // Clear episode inputs on open
+            seasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>'; // Clear episode inputs on open
         };
 
         // Made closeAddModal global
@@ -526,7 +522,7 @@
                 const tvResponse = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=fr-FR`);
 
                 const movieData = await movieResponse.json();
-                const tvData = await tvResponse.json();
+                const tvData = await tvData.json();
 
                 const combinedResults = [...movieData.results, ...tvData.results];
 
@@ -544,7 +540,6 @@
                         const genreIds = result.genre_ids || []; // Array of genre IDs
                         const id = result.id; // TMDB ID
                         const numberOfSeasons = result.number_of_seasons;
-                        const totalEpisodes = result.number_of_episodes; // TMDB gives total episodes, we'll use it as a hint for "per season"
 
                         const card = document.createElement('div');
                         card.className = 'tmdb-result-card p-2 rounded-lg shadow-md text-center';
@@ -554,7 +549,7 @@
                             <p class="text-gray-400 text-xs">${type} (${releaseDate.split('-')[0]})</p>
                         `;
                         // Pass new fields to selectTmdbResult
-                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons, totalEpisodes);
+                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons);
                         tmdbSearchResults.appendChild(card);
                     });
                 }
@@ -566,21 +561,15 @@
         };
 
         // Made selectTmdbResult global
-        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons, totalEpisodes) => {
+        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
             contentType.value = type.toLowerCase().includes('film') ? 'film' : 'serie'; // Set type based on TMDB result
 
-            // Set seasons and episodes if it's a series
+            // Set seasons if it's a series
             if (contentType.value === 'serie') {
                 numberOfSeasonsInput.value = numberOfSeasons || 1;
-                // Try to estimate episodes per season if total episodes are available
-                if (numberOfSeasons && totalEpisodes) {
-                    numberOfEpisodesPerSeasonInput.value = Math.ceil(totalEpisodes / numberOfSeasons);
-                } else {
-                    numberOfEpisodesPerSeasonInput.value = 1;
-                }
             }
             window.toggleSeriesFields(); // Update visibility
 
@@ -625,37 +614,62 @@
                 filmVideoUrlDiv.classList.remove('hidden'); // Show film video URL for films
                 contentVideoUrl.setAttribute('required', 'true'); // Required for films
             }
+            // Clear season/episode inputs when changing type, to avoid stale data
+            seasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>';
         };
 
-        // Generate episode input fields (made global)
-        window.generateEpisodeInputs = () => {
+        // Generate season and episode input fields (made global)
+        window.generateSeasonEpisodeInputs = () => {
             const numSeasons = parseInt(numberOfSeasonsInput.value, 10);
-            const numEpisodesPerSeason = parseInt(numberOfEpisodesPerSeasonInput.value, 10);
 
-            if (isNaN(numSeasons) || numSeasons < 1 || isNaN(numEpisodesPerSeason) || numEpisodesPerSeason < 1) {
-                window.displayMessage("Veuillez entrer un nombre valide de saisons et d'épisodes (minimum 1).", 'error');
+            if (isNaN(numSeasons) || numSeasons < 1) {
+                window.displayMessage("Veuillez entrer un nombre valide de saisons (minimum 1).", 'error');
                 return;
             }
 
-            episodeVideoInputsContainer.innerHTML = ''; // Clear previous inputs
+            seasonEpisodeInputsContainer.innerHTML = ''; // Clear previous inputs
 
             for (let s = 1; s <= numSeasons; s++) {
-                const seasonHeader = document.createElement('h4');
-                seasonHeader.className = 'text-lg font-semibold text-white mt-4 mb-2';
-                seasonHeader.textContent = `Saison ${s}`;
-                episodeVideoInputsContainer.appendChild(seasonHeader);
-
-                for (let e = 1; e <= numEpisodesPerSeason; e++) {
-                    const inputGroup = document.createElement('div');
-                    inputGroup.className = 'mb-2';
-                    inputGroup.innerHTML = `
-                        <label for="videoUrl_S${s}E${e}" class="block text-gray-400 text-sm mb-1">S${s} E${e} (Lien vidéo) :</label>
-                        <input type="url" id="videoUrl_S${s}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz.html">
-                    `;
-                    episodeVideoInputsContainer.appendChild(inputGroup);
-                }
+                const seasonContainer = document.createElement('div');
+                seasonContainer.className = 'bg-gray-700 p-4 rounded-lg mb-4';
+                seasonContainer.innerHTML = `
+                    <h4 class="text-lg font-semibold text-white mb-2">Saison ${s}</h4>
+                    <div class="mb-4">
+                        <label for="numEpisodes_S${s}" class="block text-gray-400 text-sm font-bold mb-2">Nombre d'épisodes pour Saison ${s} :</label>
+                        <input type="number" id="numEpisodes_S${s}" class="w-full p-2 rounded-lg bg-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" min="1" value="1">
+                    </div>
+                    <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.generateEpisodeVideoInputs(${s})">Générer champs vidéo pour Saison ${s}</button>
+                    <div id="episodeVideoInputs_S${s}" class="mt-4 episode-input-grid">
+                        <p class="text-gray-400 col-span-full text-center">Cliquez sur "Générer champs vidéo..."</p>
+                    </div>
+                `;
+                seasonEpisodeInputsContainer.appendChild(seasonContainer);
             }
-            window.displayMessage("Champs d'épisodes générés !", 'success');
+            window.displayMessage("Champs de saisons générés. Spécifiez les épisodes pour chaque saison.", 'success');
+        };
+
+        // Generate video URL inputs for specific season (made global)
+        window.generateEpisodeVideoInputs = (seasonNumber) => {
+            const numEpisodes = parseInt(document.getElementById(`numEpisodes_S${seasonNumber}`).value, 10);
+            const episodeVideoInputsDiv = document.getElementById(`episodeVideoInputs_S${seasonNumber}`);
+
+            if (isNaN(numEpisodes) || numEpisodes < 1) {
+                window.displayMessage("Veuillez entrer un nombre valide d'épisodes pour cette saison (minimum 1).", 'error');
+                return;
+            }
+
+            episodeVideoInputsDiv.innerHTML = ''; // Clear previous inputs
+
+            for (let e = 1; e <= numEpisodes; e++) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'mb-2';
+                inputGroup.innerHTML = `
+                    <label for="videoUrl_S${seasonNumber}E${e}" class="block text-gray-400 text-sm mb-1">S${seasonNumber} E${e} (Lien vidéo) :</label>
+                    <input type="url" id="videoUrl_S${seasonNumber}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz.html">
+                `;
+                episodeVideoInputsDiv.appendChild(inputGroup);
+            }
+            window.displayMessage(`Champs vidéo générés pour la Saison ${seasonNumber}.`, 'success');
         };
 
 
@@ -673,13 +687,13 @@
             if (newContent.type === 'film') {
                 newContent.videoUrl = contentVideoUrl.value;
             } else if (newContent.type === 'serie') {
-                newContent.numberOfSeasons = parseInt(numberOfSeasonsInput.value, 10);
-                newContent.numberOfEpisodesPerSeason = parseInt(numberOfEpisodesPerSeasonInput.value, 10);
-
                 const seriesEpisodes = [];
-                for (let s = 1; s <= newContent.numberOfSeasons; s++) {
+                const numSeasons = parseInt(numberOfSeasonsInput.value, 10);
+
+                for (let s = 1; s <= numSeasons; s++) {
+                    const numEpisodes = parseInt(document.getElementById(`numEpisodes_S${s}`).value, 10);
                     const season = { seasonNumber: s, episodes: [] };
-                    for (let e = 1; e <= newContent.numberOfEpisodesPerSeason; e++) {
+                    for (let e = 1; e <= numEpisodes; e++) {
                         const episodeVideoUrl = document.getElementById(`videoUrl_S${s}E${e}`).value;
                         season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
                     }

@@ -162,9 +162,12 @@
                                     });
                                 }
                             });
-                            // Automatically play the first episode if available
+                            // Automatically play the first episode of the first season if available
                             if (seriesEpisodesParsed[0] && seriesEpisodesParsed[0].episodes[0]) {
                                 window.playVideo(seriesEpisodesParsed[0].episodes[0].videoUrl);
+                            } else {
+                                episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
+                                window.playVideo(null); // Clear player
                             }
                         } else {
                              episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
