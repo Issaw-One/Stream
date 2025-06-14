@@ -6,7 +6,6 @@
     <title id="detailPageTitle">Détails - PafStreaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -60,13 +59,27 @@
         window.addEventListener('load', initFirebase);
 
         // Function to load and play a specific video URL (made global)
-        window.playVideo = (videoUrl) => {
+        window.playVideo = (videoUrl, seriesTitle = '', seasonNumber = '', episodeNumber = '') => {
             const playerContainer = document.getElementById('playerContainer');
+            const episodeInfoElem = document.getElementById('episodeInfo'); // Get the new element
+            const watchSection = document.getElementById('watchSection'); // Get the watch section
+
             playerContainer.innerHTML = ''; // Clear previous player
 
             if (!videoUrl) {
                 playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour cet épisode.</p>';
+                episodeInfoElem.textContent = ''; // Clear episode info
+                watchSection.style.display = 'none'; // Hide watch section if no video URL
                 return;
+            }
+
+            // Update episode info
+            if (seriesTitle && seasonNumber && episodeNumber) {
+                episodeInfoElem.textContent = `${seriesTitle} - Saison ${seasonNumber}, Épisode ${episodeNumber}`;
+                watchSection.style.display = 'block'; // Ensure watch section is visible
+            } else {
+                episodeInfoElem.textContent = ''; // Clear for films or if info is missing
+                watchSection.style.display = 'block'; // Ensure watch section is visible for films
             }
 
             // Check if it's an embed URL
@@ -120,7 +133,7 @@
                 const playMainContentButton = document.getElementById('playMainContentButton'); // The "Lecture" button
                 const episodesSection = document.getElementById('episodesSection');
                 const episodesGrid = document.getElementById('episodesGrid');
-
+                const watchSection = document.getElementById('watchSection'); // Get the watch section
 
                 if (contentSnap.exists()) {
                     const data = contentSnap.data();
@@ -132,6 +145,7 @@
                     // Handle series episodes or single film video
                     if (data.type === 'serie' && data.seriesEpisodes) {
                         episodesSection.style.display = 'block'; // Show the section
+                        watchSection.style.display = 'none'; // Hide the watch section initially for series
                         episodesGrid.innerHTML = ''; // Clear previous buttons
                         playMainContentButton.style.display = 'none'; // Hide main play button for series
 
@@ -155,32 +169,30 @@
                                         const episodeButton = document.createElement('button');
                                         episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
                                         episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
-                                        episodeButton.onclick = () => window.playVideo(episode.videoUrl);
+                                        // Pass seriesTitle, seasonNumber, episodeNumber to playVideo
+                                        episodeButton.onclick = () => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber);
                                         episodesGrid.appendChild(episodeButton);
                                     });
                                 }
                             });
-                            // Automatically play the first episode of the first season if available
-                            if (seriesEpisodesParsed[0] && seriesEpisodesParsed[0].episodes[0]) {
-                                window.playVideo(seriesEpisodesParsed[0].episodes[0].videoUrl);
-                            } else {
-                                episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
-                                window.playVideo(null); // Clear player
-                            }
+                            // No automatic playback of the first episode for series
+                            window.playVideo(null); // Clear player, displaying "Aucune vidéo disponible pour cet épisode." and hiding watch section
                         } else {
                              episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
-                             window.playVideo(null); // Clear player
+                             window.playVideo(null); // Clear player and hide watch section
                         }
 
                     } else { // It's a film or series without episode data
                         episodesSection.style.display = 'none'; // Hide episodes section
                         playMainContentButton.style.display = ''; // Show main play button for films
+                        watchSection.style.display = 'block'; // Ensure watch section is visible for films
+                        document.getElementById('episodeInfo').textContent = data.title; // Display film title
 
                         // Set the onclick for the main play button for films
-                        playMainContentButton.onclick = () => window.playVideo(data.videoUrl);
+                        playMainContentButton.onclick = () => window.playVideo(data.videoUrl, data.title); // Pass film title
 
                         // Automatically play the film if available
-                        window.playVideo(data.videoUrl);
+                        window.playVideo(data.videoUrl, data.title); // Pass film title
                     }
 
                 } else {
@@ -201,6 +213,8 @@
             document.getElementById('playMainContentButton').style.display = 'none'; // Hide play button
             document.getElementById('heroDetailSection').style.backgroundImage = `url('https://placehold.co/1200x500/000000/FFFFFF?text=Contenu+Non+Trouve')`;
             document.getElementById('episodesSection').style.display = 'none'; // Hide episodes section
+            document.getElementById('watchSection').style.display = 'none'; // Hide watch section when content is not found
+            document.getElementById('episodeInfo').textContent = ''; // Clear episode info
         };
 
         // The playContent function is now dynamically set or hidden based on video type
@@ -241,7 +255,6 @@
 </head>
 <body class="antialiased">
     <div class="min-h-screen flex flex-col">
-        <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
                 <span class="text-2xl font-bold text-white uppercase tracking-wider">PafStreaming</span>
@@ -251,15 +264,13 @@
                 <a href="films.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="series.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
-                <!--<a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>-->
-            </nav>
+                </nav>
             <div class="flex items-center space-x-4">
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreaming">TELEGRAM</a></button>
                 <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>
         </header>
 
-        <!-- Main Content for Detail Page -->
         <main class="flex-grow pt-20 p-8">
             <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg mb-8" id="heroDetailSection">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
@@ -274,38 +285,21 @@
                 </div>
             </section>
 
-            <!-- Video Player Section -->
-            <section class="mb-8">
-                <h2 class="text-3xl font-bold mb-4 text-white">Regarder</h2>
-                <div id="playerContainer" class="video-container">
-                    <!-- Video or Iframe will be injected here dynamically -->
+            <section id="watchSection" class="mb-8">
+                <h2 class="text-3xl font-bold mb-2 text-white">Regarder</h2>
+                <div id="episodeInfo" class="text-gray-300 text-xl mb-4"></div> <div id="playerContainer" class="video-container">
                     <p class="text-gray-400 text-center py-10">Chargement de la vidéo...</p>
                 </div>
             </section>
 
-            <!-- Episodes Section (Only for series) -->
             <section id="episodesSection" class="mb-8" style="display: none;">
                 <h2 class="text-3xl font-bold mb-4 text-white">Épisodes</h2>
                 <div id="episodesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <!-- Episode buttons will be injected here -->
-                </div>
+                    </div>
             </section>
 
-            <!-- Additional Content/Gallery (similar to the provided image) -->
-            <!--<section>
-                <h2 class="text-3xl font-bold mb-4 text-white">Bande d'annonce et extraits</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+1" alt="Extrait vidéo 1" class="w-full h-auto object-cover rounded-lg shadow-md">
-                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+2" alt="Extrait vidéo 2" class="w-full h-auto object-cover rounded-lg shadow-md">
-                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+3" alt="Extrait vidéo 3" class="w-full h-auto object-cover rounded-lg shadow-md">
-                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+4" alt="Extrait vidéo 4" class="w-full h-auto object-cover rounded-lg shadow-md">
-                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+5" alt="Extrait vidéo 5" class="w-full h-auto object-cover rounded-lg shadow-md">
-                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+6" alt="Extrait vidéo 6" class="w-full h-auto object-cover rounded-lg shadow-md">
-                </div>
-            </section>-->
-        </main>
+            </main>
 
-        <!-- Footer (optional) -->
         <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
             <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
             <p>Ce site n'héberge auccun films et séries.</p>

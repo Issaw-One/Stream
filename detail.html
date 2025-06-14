@@ -28,6 +28,7 @@
         window.db = null;
         window.auth = null;
         window.userId = null; // userId will be set by Firebase Auth
+        let currentPlayingEpisodeButton = null; // To keep track of the active button
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
@@ -59,17 +60,24 @@
         window.addEventListener('load', initFirebase);
 
         // Function to load and play a specific video URL (made global)
-        window.playVideo = (videoUrl, seriesTitle = '', seasonNumber = '', episodeNumber = '') => {
+        window.playVideo = (videoUrl, seriesTitle = '', seasonNumber = '', episodeNumber = '', clickedButton = null) => {
             const playerContainer = document.getElementById('playerContainer');
             const episodeInfoElem = document.getElementById('episodeInfo'); // Get the new element
             const watchSection = document.getElementById('watchSection'); // Get the watch section
 
             playerContainer.innerHTML = ''; // Clear previous player
 
+            // Reset previously active button
+            if (currentPlayingEpisodeButton) {
+                currentPlayingEpisodeButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                currentPlayingEpisodeButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+            }
+
             if (!videoUrl) {
                 playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour cet épisode.</p>';
                 episodeInfoElem.textContent = ''; // Clear episode info
                 watchSection.style.display = 'none'; // Hide watch section if no video URL
+                currentPlayingEpisodeButton = null; // No button is active
                 return;
             }
 
@@ -77,10 +85,24 @@
             if (seriesTitle && seasonNumber && episodeNumber) {
                 episodeInfoElem.textContent = `${seriesTitle} - Saison ${seasonNumber}, Épisode ${episodeNumber}`;
                 watchSection.style.display = 'block'; // Ensure watch section is visible
-            } else {
-                episodeInfoElem.textContent = ''; // Clear for films or if info is missing
+            } else if (seriesTitle) { // For films
+                episodeInfoElem.textContent = seriesTitle;
+                watchSection.style.display = 'block';
+            }
+            else {
+                episodeInfoElem.textContent = ''; // Clear for unknown content or if info is missing
                 watchSection.style.display = 'block'; // Ensure watch section is visible for films
             }
+
+            // Highlight the clicked button
+            if (clickedButton) {
+                clickedButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                clickedButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                currentPlayingEpisodeButton = clickedButton;
+            } else {
+                currentPlayingEpisodeButton = null; // No button is active for films or initial load
+            }
+
 
             // Check if it's an embed URL
             if (videoUrl.includes('uqload.net/embed-') || videoUrl.includes('goofy-banana.com/e/') || videoUrl.includes('sharecloudy.com/iframe/') || videoUrl.includes('beerscloud.com/iframe/')) {
@@ -98,7 +120,7 @@
                 video.setAttribute('autoplay', ''); // Autoplay when an episode is selected
                 video.src = videoUrl;
                 video.className = 'w-full h-full absolute top-0 left-0';
-                video.innerHTML = 'Votre navigateur ne supporte pas l\'élément vidéo.';
+                video.innerHTML = 'Votre navigateur ne supporte pas l'élément vidéo.';
                 playerContainer.appendChild(video);
                 video.load();
             }
@@ -134,6 +156,8 @@
                 const episodesSection = document.getElementById('episodesSection');
                 const episodesGrid = document.getElementById('episodesGrid');
                 const watchSection = document.getElementById('watchSection'); // Get the watch section
+                const episodeInfoElem = document.getElementById('episodeInfo');
+
 
                 if (contentSnap.exists()) {
                     const data = contentSnap.data();
@@ -148,6 +172,7 @@
                         watchSection.style.display = 'none'; // Hide the watch section initially for series
                         episodesGrid.innerHTML = ''; // Clear previous buttons
                         playMainContentButton.style.display = 'none'; // Hide main play button for series
+                        episodeInfoElem.textContent = ''; // Clear episode info initially for series
 
                         let seriesEpisodesParsed;
                         try {
@@ -169,8 +194,8 @@
                                         const episodeButton = document.createElement('button');
                                         episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
                                         episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
-                                        // Pass seriesTitle, seasonNumber, episodeNumber to playVideo
-                                        episodeButton.onclick = () => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber);
+                                        // Pass seriesTitle, seasonNumber, episodeNumber and the button itself to playVideo
+                                        episodeButton.onclick = (event) => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target);
                                         episodesGrid.appendChild(episodeButton);
                                     });
                                 }
@@ -186,7 +211,7 @@
                         episodesSection.style.display = 'none'; // Hide episodes section
                         playMainContentButton.style.display = ''; // Show main play button for films
                         watchSection.style.display = 'block'; // Ensure watch section is visible for films
-                        document.getElementById('episodeInfo').textContent = data.title; // Display film title
+                        episodeInfoElem.textContent = data.title; // Display film title
 
                         // Set the onclick for the main play button for films
                         playMainContentButton.onclick = () => window.playVideo(data.videoUrl, data.title); // Pass film title
