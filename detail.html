@@ -60,6 +60,7 @@
 
         // Function to load and play a specific video URL (made global)
         window.playVideo = (videoUrl) => {
+            document.getElementById('watchSection').style.display = 'block'; // Ensure watch section is visible when a video is played
             const playerContainer = document.getElementById('playerContainer');
             playerContainer.innerHTML = ''; // Clear previous player
 
@@ -119,7 +120,7 @@
                 const playMainContentButton = document.getElementById('playMainContentButton'); // The "Lecture" button
                 const episodesSection = document.getElementById('episodesSection');
                 const episodesGrid = document.getElementById('episodesGrid');
-
+                const watchSection = document.getElementById('watchSection'); // Get the watch section
 
                 if (contentSnap.exists()) {
                     const data = contentSnap.data();
@@ -131,6 +132,7 @@
                     // Handle series episodes or single film video
                     if (data.type === 'serie' && data.seriesEpisodes) {
                         episodesSection.style.display = 'block'; // Show the section
+                        watchSection.style.display = 'none'; // Hide the watch section initially for series
                         episodesGrid.innerHTML = ''; // Clear previous buttons
                         playMainContentButton.style.display = 'none'; // Hide main play button for series
 
@@ -159,21 +161,19 @@
                                     });
                                 }
                             });
-                            // Automatically play the first episode of the first season if available
-                            // Removed automatic playback for series; video will only play upon episode selection.
-                            // if (seriesEpisodesParsed[0] && seriesEpisodesParsed[0].episodes[0]) {
-                            //     window.playVideo(seriesEpisodesParsed[0].episodes[0].videoUrl);
-                            // } else {
-                                window.playVideo(null); // Clear player, ensuring "Aucune vidéo disponible pour cet épisode." is shown
-                            // }
+                            // No automatic playback of the first episode for series
+                            window.playVideo(null); // Clear player, displaying "Aucune vidéo disponible pour cet épisode."
+                            watchSection.style.display = 'none'; // Keep watch section hidden after clearing player
                         } else {
                              episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
                              window.playVideo(null); // Clear player
+                             watchSection.style.display = 'none'; // Hide watch section if no episodes are configured
                         }
 
                     } else { // It's a film or series without episode data
                         episodesSection.style.display = 'none'; // Hide episodes section
                         playMainContentButton.style.display = ''; // Show main play button for films
+                        watchSection.style.display = 'block'; // Ensure watch section is visible for films
 
                         // Set the onclick for the main play button for films
                         playMainContentButton.onclick = () => window.playVideo(data.videoUrl);
@@ -200,6 +200,7 @@
             document.getElementById('playMainContentButton').style.display = 'none'; // Hide play button
             document.getElementById('heroDetailSection').style.backgroundImage = `url('https://placehold.co/1200x500/000000/FFFFFF?text=Contenu+Non+Trouve')`;
             document.getElementById('episodesSection').style.display = 'none'; // Hide episodes section
+            document.getElementById('watchSection').style.display = 'none'; // Hide watch section when content is not found
         };
 
         // The playContent function is now dynamically set or hidden based on video type
@@ -270,7 +271,7 @@
                 </div>
             </section>
 
-            <section class="mb-8">
+            <section id="watchSection" class="mb-8">
                 <h2 class="text-3xl font-bold mb-4 text-white">Regarder</h2>
                 <div id="playerContainer" class="video-container">
                     <p class="text-gray-400 text-center py-10">Chargement de la vidéo...</p>
