@@ -154,13 +154,12 @@
                                 <th class="py-3 px-4 text-gray-400">ID</th>
                                 <th class="py-3 px-4 text-gray-400">Titre</th>
                                 <th class="py-3 px-4 text-gray-400">Genre</th>
-                                <th class="py-3 px-4 text-gray-400">Date d'ajout / modif.</th>
                                 <th class="py-3 px-4 text-gray-400">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="contentTableBody">
                             <tr>
-                                <td colspan="5" class="py-4 text-center text-gray-500">
+                                <td colspan="4" class="py-4 text-center text-gray-500">
                                     Chargement des contenus...
                                 </td>
                             </tr>
@@ -381,18 +380,13 @@
             tbody.innerHTML = ''; // Clear existing rows
 
             if (contents.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-gray-500">
+                tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-gray-500">
                     Aucun film ou série ajouté pour le moment.
                 </td></tr>`;
                 return;
             }
 
-            // Sort by createdAt in descending order, then by updatedAt in descending order
-            contents.sort((a, b) => {
-                const dateA = a.createdAt || a.updatedAt || 0;
-                const dateB = b.createdAt || b.updatedAt || 0;
-                return dateB - dateA; // Descending order
-            });
+            contents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort by creation time if available
 
             contents.forEach(content => {
                 const row = document.createElement('tr');
@@ -402,14 +396,10 @@
                     genreText = content.genre;
                 }
 
-                const displayDate = content.updatedAt ? new Date(content.updatedAt).toLocaleString() : (content.createdAt ? new Date(content.createdAt).toLocaleString() : 'N/A');
-
-
                 row.innerHTML = `
                     <td class="py-3 px-4 truncate max-w-[100px]">${content.id}</td>
                     <td class="py-3 px-4">${content.title}</td>
                     <td class="py-3 px-4">${genreText}</td>
-                    <td class="py-3 px-4">${displayDate}</td>
                     <td class="py-3 px-4">
                         <button class="text-blue-400 hover:text-blue-300" onclick="window.editContent('${content.id}')">Modifier</button>
                         <button class="text-red-400 hover:text-red-300 ml-2" onclick="window.deleteContent('${content.id}')">Supprimer</button>
@@ -433,8 +423,7 @@
 
                 const docRef = await addDoc(collection(window.db, `all_films_series`), { // Changed collection path here
                     ...contentData,
-                    createdAt: Date.now(), // Add timestamp for initial creation
-                    timestamp: Date.now() // Add a general timestamp for "last added/updated" for frontend display
+                    createdAt: Date.now() // Add timestamp for sorting
                 });
                 console.log("Document écrit avec ID: ", docRef.id);
                 window.displayMessage("Film/Série ajouté avec succès !", 'success');
@@ -499,11 +488,7 @@
                     contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
                 }
 
-                await updateDoc(docRef, {
-                    ...contentData,
-                    updatedAt: Date.now(), // Add timestamp for last update
-                    timestamp: Date.now() // Update general timestamp for "last added/updated"
-                });
+                await updateDoc(docRef, contentData);
                 console.log("Document mis à jour avec ID: ", contentId);
                 window.displayMessage("Film/Série mis à jour avec succès !", 'success');
                 window.closeEditModal();
