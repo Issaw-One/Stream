@@ -371,10 +371,8 @@
                 return;
             }
 
-            // Path for user-specific data (recommended for admin panel)
-            const contentCollectionRef = collection(window.db, `users/${window.userId}/films_series`);
-            // If you want all admins to see/edit the SAME content, use a global collection path:
-            // const contentCollectionRef = collection(window.db, `all_films_series`);
+            // Path for ALL public data
+            const contentCollectionRef = collection(window.db, `all_films_series`);
 
             const q = query(contentCollectionRef);
 
@@ -437,7 +435,7 @@
                     contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
                 }
 
-                const docRef = await addDoc(collection(window.db, `users/${window.userId}/films_series`), {
+                const docRef = await addDoc(collection(window.db, `all_films_series`), { // Changed collection path here
                     ...contentData,
                     createdAt: Date.now() // Add timestamp for sorting
                 });
@@ -458,7 +456,7 @@
             }
 
             try {
-                const docRef = doc(window.db, `users/${window.userId}/films_series`, contentId);
+                const docRef = doc(window.db, `all_films_series`, contentId); // Changed collection path here
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -497,7 +495,7 @@
                 return;
             }
             try {
-                const docRef = doc(window.db, `users/${window.userId}/films_series`, contentId);
+                const docRef = doc(window.db, `all_films_series`, contentId); // Changed collection path here
                 
                 // For series, stringify the episodes data
                 if (contentData.type === 'serie' && contentData.seriesEpisodes) {
@@ -523,7 +521,7 @@
             }
             window.showCustomConfirm('Êtes-vous sûr de vouloir supprimer ce contenu ?', async () => {
                 try {
-                    await deleteDoc(doc(window.db, `users/${window.userId}/films_series`, contentId));
+                    await deleteDoc(doc(window.db, `all_films_series`, contentId)); // Changed collection path here
                     window.displayMessage("Contenu supprimé avec succès !", 'success');
                 } catch (e) {
                     console.error("Erreur lors de la suppression du document: ", e);
@@ -567,7 +565,7 @@
 
         // *** REMPLACER 'VOTRE_CLE_API_TMDB' PAR VOTRE VÉRITABLE CLÉ API TMDB ***
         // Vous pouvez obtenir une clé API ici : https://www.themoviedb.org/documentation/api
-        const TMDB_API_KEY = '313671f6e4dcbb4c2d9cb7f561c7ee25';
+        const TMDB_API_KEY = 'VOTRE_CLE_API_TMDB';
         const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
         const TMDB_POSTER_FALLBACK = 'https://placehold.co/200x300/333/EEE?text=Pas+d\'affiche';
 
