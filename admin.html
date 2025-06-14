@@ -94,16 +94,16 @@
     <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
         <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">PafSStreaming</div>
         <nav class="w-full">
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2" onclick="window.filterContent('all', this)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l-7 7m7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 <span>Tableau de bord</span>
             </a>
             <div class="text-gray-400 uppercase text-xs font-semibold mt-6 mb-2 ml-3">Contenu</div>
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2" onclick="window.filterContent('film', this)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h18M3 16h18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 <span>Films</span>
             </a>
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2" onclick="window.filterContent('serie', this)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 4l-4 4 4 4"/></svg>
                 <span>Séries</span>
             </a>
@@ -139,10 +139,6 @@
             </section>
 
             <section class="card p-6 rounded-lg shadow-md">
-                <div class="mb-4 flex items-center space-x-2">
-                    <input type="text" id="contentSearchInput" placeholder="Rechercher un film ou une série..." class="flex-grow p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.filterContent()">Rechercher</button>
-                </div>
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">Tous les films</h2>
                     <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
@@ -310,6 +306,8 @@
         window.db = null;
         window.auth = null;
         window.userId = null; // userId will be set by Firebase Auth
+        window.fullContentList = []; // Stores all content from Firestore
+        window.currentFilterType = 'all'; // Default filter type
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
@@ -366,12 +364,27 @@
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
-                window.allContentData = contentList; // Store all content globally for filtering
-                window.displayContent(contentList); // Call global displayContent
+                window.fullContentList = contentList; // Store all fetched content
+                window.applyFilterAndDisplay(window.currentFilterType); // Apply current filter and display
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
                 window.displayMessage(`Erreur de synchronisation des contenus: ${error.message}`, 'error');
             });
+        };
+
+        // New function to apply filter and display content
+        window.applyFilterAndDisplay = (filterType) => {
+            window.currentFilterType = filterType;
+            let filteredContents = [];
+
+            if (filterType === 'all') {
+                filteredContents = window.fullContentList;
+            } else {
+                filteredContents = window.fullContentList.filter(content => content.type === filterType);
+            }
+
+            window.displayContent(filteredContents); // Call global displayContent
+            window.updateSidebarActiveState(); // Update active state of sidebar links
         };
 
         // Function to display content in the table (made global)
@@ -407,6 +420,37 @@
                 `;
                 tbody.appendChild(row);
             });
+        };
+
+        // Function to filter content and update active state of sidebar (made global)
+        window.filterContent = (type, element = null) => {
+            window.currentFilterType = type;
+            window.applyFilterAndDisplay(type);
+            // Optionally update URL or local storage to persist filter choice
+        };
+
+        // Function to update sidebar active class
+        window.updateSidebarActiveState = () => {
+            const sidebarLinks = document.querySelectorAll('.sidebar nav a');
+            sidebarLinks.forEach(link => {
+                link.classList.remove('bg-blue-700', 'text-white', 'font-semibold');
+                link.classList.add('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+            });
+
+            // Find the link corresponding to the current filter and apply active styling
+            let activeLink;
+            if (window.currentFilterType === 'all') {
+                activeLink = document.querySelector('.sidebar nav a[onclick*="all"]');
+            } else if (window.currentFilterType === 'film') {
+                activeLink = document.querySelector('.sidebar nav a[onclick*="film"]');
+            } else if (window.currentFilterType === 'serie') {
+                activeLink = document.querySelector('.sidebar nav a[onclick*="serie"]');
+            }
+
+            if (activeLink) {
+                activeLink.classList.add('bg-blue-700', 'text-white', 'font-semibold');
+                activeLink.classList.remove('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+            }
         };
 
         // Function to add new content to Firestore (made global)
@@ -585,10 +629,6 @@
         const editSeasonEpisodeInputsContainer = document.getElementById('editSeasonEpisodeInputsContainer'); // Edit modal container for season/episode inputs
         const editContentForm = document.getElementById('editContentForm');
 
-        // Added for search functionality
-        const contentSearchInput = document.getElementById('contentSearchInput');
-        window.allContentData = []; // To store all fetched content for client-side filtering
-
         // Made openAddModal global
         window.openAddModal = () => {
             addMovieModal.style.display = 'flex';
@@ -663,7 +703,7 @@
 
                 if (combinedResults.length === 0) {
                     tmdbSearchResults.innerHTML = '';
-                    noTmdbResults.classList.add('hidden');
+                    noTmdbResults.classList.remove('hidden');
                 } else {
                     tmdbSearchResults.innerHTML = '';
                     combinedResults.forEach(result => {
@@ -856,21 +896,6 @@
             window.displayMessage(`Champs vidéo générés pour la Saison ${seasonNumber}.`, 'success');
         };
 
-        // Filter content based on search input
-        window.filterContent = () => {
-            const searchTerm = contentSearchInput.value.toLowerCase();
-            const filteredContent = window.allContentData.filter(content =>
-                content.title.toLowerCase().includes(searchTerm) ||
-                content.description.toLowerCase().includes(searchTerm) ||
-                (content.genre && content.genre.some(g => g.toLowerCase().includes(searchTerm))) ||
-                content.id.toLowerCase().includes(searchTerm)
-            );
-            window.displayContent(filteredContent);
-        };
-
-        // Event listener for search input (live search)
-        contentSearchInput.addEventListener('keyup', window.filterContent);
-
 
         addContentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -960,7 +985,10 @@
         });
 
         // Initial call to set correct field visibility on page load for the add form
-        window.addEventListener('DOMContentLoaded', () => window.toggleSeriesFields('add'));
+        window.addEventListener('DOMContentLoaded', () => {
+            window.toggleSeriesFields('add');
+            window.updateSidebarActiveState(); // Set initial active state for sidebar
+        });
     </script>
 </body>
 </html>
