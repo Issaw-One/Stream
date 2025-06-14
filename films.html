@@ -63,7 +63,7 @@
                 return;
             }
 
-            const contentCollectionRef = collection(window.db, \all_films_series`);`
+            const contentCollectionRef = collection(window.db, `all_films_series`);
             // Filter by type 'film'
             const q = query(contentCollectionRef, where('type', '==', 'film'));
 
