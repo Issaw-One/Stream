@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nightflix - Films et Séries Libre de Droit</title>
+    <title>Nightflix - Films</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
+        import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -21,14 +20,14 @@
             storageBucket: "stream-df8b9.firebasestorage.app",
             messagingSenderId: "488904493156",
             appId: "1:488904493156:web:9b468948bc244b9a78f771",
-            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
+            measurementId: "G-SJFE58Y2JN"
         };
 
         // Global variables for Firebase services
         window.app = null;
         window.db = null;
         window.auth = null;
-        window.userId = null; // userId will be set by Firebase Auth
+        window.userId = null; 
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
@@ -36,20 +35,18 @@
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
-                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
-                // Authenticate user anonymously for public access
                 await signInAnonymously(window.auth);
 
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié pour le frontend:", window.userId);
-                        window.setupContentListener(); // Call global setupContentListener
+                        window.setupContentListener(); 
                     } else {
-                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
+                        window.userId = crypto.randomUUID(); 
                         console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
-                        window.setupContentListener(); // Call global setupContentListener
+                        window.setupContentListener(); 
                     }
                 });
             } catch (error) {
@@ -59,28 +56,23 @@
 
         window.addEventListener('load', initFirebase);
 
-        // Function to set up real-time content listener for the main page
+        // Function to set up real-time content listener for the films page
         window.setupContentListener = () => {
             if (!window.db || !window.userId) {
                 console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
                 return;
             }
 
-            // Path for user-specific data (assuming content added via admin is private)
-            // Be careful with this path: `users/${window.userId}/films_series`
-            // If you want content to be visible to ALL users (even anonymous visitors),
-            // you should store it in a public collection, e.g., `all_films_series`.
-            // For now, it will show content added by the currently signed-in (possibly anonymous) user.
             const contentCollectionRef = collection(window.db, `users/${window.userId}/films_series`);
-            // For the main page, we display all content without type filter.
-            const q = query(contentCollectionRef);
+            // Filter by type 'film'
+            const q = query(contentCollectionRef, where('type', '==', 'film'));
 
             onSnapshot(q, (snapshot) => {
                 const contentList = [];
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
-                window.displayContentCards(contentList); // Call global displayContentCards
+                window.displayContentCards(contentList); 
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
             });
@@ -89,10 +81,10 @@
         // Function to display content cards (made global)
         window.displayContentCards = (contents) => {
             const contentGrid = document.getElementById('contentGrid');
-            contentGrid.innerHTML = ''; // Clear existing cards
+            contentGrid.innerHTML = ''; 
 
             if (contents.length === 0) {
-                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun film ou série disponible pour le moment.</p>`;
+                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun film disponible pour le moment.</p>`;
                 return;
             }
 
@@ -101,7 +93,7 @@
                 card.className = 'content-card bg-card rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer';
                 card.setAttribute('data-id', content.id);
                 card.setAttribute('data-title', content.title);
-                card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A'); // Handle both array and string genres
+                card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A');
                 card.onclick = () => window.navigateToDetail(content.id);
 
                 card.innerHTML = `
@@ -113,7 +105,7 @@
                 `;
                 contentGrid.appendChild(card);
             });
-            window.filterContent(); // Call global filterContent
+            window.filterContent(); 
         };
 
         // JavaScript for search/filter functionality (made global)
@@ -126,9 +118,9 @@
                 const title = card.getAttribute('data-title').toLowerCase();
                 const genre = card.getAttribute('data-genre').toLowerCase();
                 if (title.includes(filter) || genre.includes(filter)) {
-                    card.style.display = ''; // Show the card
+                    card.style.display = ''; 
                 } else {
-                    card.style.display = 'none'; // Hide the card
+                    card.style.display = 'none'; 
                 }
             });
         };
@@ -177,8 +169,8 @@
                 <span class="text-2xl font-bold text-white uppercase tracking-wider">Nightflix</span>
             </div>
             <nav class="hidden md:flex space-x-6">
-                <a href="index.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Accueil</a>
-                <a href="films.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
+                <a href="index.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
+                <a href="films.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Films</a>
                 <a href="series.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
                 <a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>
@@ -191,33 +183,28 @@
 
         <!-- Main Section / Hero Section -->
         <main class="flex-grow pt-20"> <!-- Added padding-top to avoid overlap with fixed header -->
-            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://placehold.co/1200x500/000000/FFFFFF?text=Image+de+film+ou+série');">
+            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://placehold.co/1200x500/000000/FFFFFF?text=Films');">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
                 <div class="z-0">
-                    <h1 class="text-5xl font-bold mb-4">Sous écrous</h1>
+                    <h1 class="text-5xl font-bold mb-4">Films</h1>
                     <p class="text-lg text-gray-300 max-w-xl mb-6">
-                        Exclusivité écrous, Sammy est piégé et calé à la place d'un autre prisonnier. Il doit faire face à une bande à bout, orchestrée pour le faire porter le chapeau.
+                        Découvrez notre sélection de films exclusifs et du domaine public.
                     </p>
-                    <div class="flex space-x-4" id="heroPlayButtonContainer">
-                        <!-- Example button, will navigate to a detail page by content ID -->
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200" onclick="window.navigateToDetail('sous_ecrous_example_id')">Regarder</button>
-                        <button class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200">Fiche</button>
-                    </div>
                 </div>
             </section>
 
             <!-- Search Bar -->
             <section class="p-8">
-                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher films ou séries..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher un film..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </section>
 
-            <!-- "Vérifiez nos à" Section (Movies and Series) -->
+            <!-- Films Grid -->
             <section class="p-8">
-                <h2 class="text-3xl font-bold mb-6 text-white">Tous les Contenus</h2>
+                <h2 class="text-3xl font-bold mb-6 text-white">Tous les Films</h2>
                 <div class="relative">
                     <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
-                        <!-- Content will be dynamically loaded here by Firestore listener -->
-                        <p class="col-span-full text-center text-gray-500">Chargement des films et séries...</p>
+                        <!-- Films will be dynamically loaded here by Firestore listener -->
+                        <p class="col-span-full text-center text-gray-500">Chargement des films...</p>
                     </div>
                 </div>
             </section>
