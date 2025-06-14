@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PafStreaming Admin</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -80,10 +78,8 @@
 </head>
 <body class="flex min-h-screen">
 
-    <!-- Message Box -->
     <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300" style="opacity: 0;"></div>
 
-    <!-- Custom Confirmation Modal -->
     <div id="customConfirmModal" class="modal">
         <div class="modal-content max-w-sm text-center">
             <h2 class="text-xl font-bold mb-4">Confirmation</h2>
@@ -95,7 +91,6 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
     <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
         <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">PafSStreaming</div>
         <nav class="w-full">
@@ -115,9 +110,7 @@
         </nav>
     </aside>
 
-    <!-- Main Content Area -->
     <div class="flex-grow flex flex-col">
-        <!-- Header for Main Content -->
         <header class="header p-6 flex justify-between items-center shadow-lg">
             <h1 class="text-3xl font-bold text-white">Tableau de bord</h1>
             <div class="flex items-center space-x-4">
@@ -126,7 +119,6 @@
             </div>
         </header>
 
-        <!-- Dashboard Content -->
         <main class="flex-grow p-6">
             <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="card p-6 rounded-lg shadow-md">
@@ -146,8 +138,11 @@
                 </div>
             </section>
 
-            <!-- All Films Section -->
             <section class="card p-6 rounded-lg shadow-md">
+                <div class="mb-4 flex items-center space-x-2">
+                    <input type="text" id="contentSearchInput" placeholder="Rechercher un film ou une série..." class="flex-grow p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.filterContent()">Rechercher</button>
+                </div>
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">Tous les films</h2>
                     <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
@@ -163,7 +158,6 @@
                             </tr>
                         </thead>
                         <tbody id="contentTableBody">
-                            <!-- Content will be dynamically loaded here by Firestore listener -->
                             <tr>
                                 <td colspan="4" class="py-4 text-center text-gray-500">
                                     Chargement des contenus...
@@ -176,13 +170,11 @@
         </main>
     </div>
 
-    <!-- Add Film/Series Modal -->
     <div id="addMovieModal" class="modal">
         <div class="modal-content">
             <span class="close-button" onclick="window.closeAddModal()">&times;</span>
             <h2 class="text-2xl font-bold mb-6 text-white">Ajouter un film / série</h2>
 
-            <!-- TMDB Search Section -->
             <div class="mb-6">
                 <label for="tmdbSearchInput" class="block text-gray-400 text-sm font-bold mb-2">Rechercher sur TMDB :</label>
                 <div class="flex space-x-2">
@@ -190,12 +182,10 @@
                     <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors" onclick="window.searchTmdb()">Rechercher</button>
                 </div>
                 <div id="tmdbSearchResults" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-80 overflow-y-auto">
-                    <!-- TMDB search results will be loaded here -->
                     <p id="noTmdbResults" class="text-gray-400 col-span-full text-center hidden">Aucun résultat trouvé.</p>
                 </div>
             </div>
 
-            <!-- Form for adding content -->
             <form id="addContentForm">
                 <div class="mb-4">
                     <label for="contentTitle" class="block text-gray-400 text-sm font-bold mb-2">Titre :</label>
@@ -223,7 +213,6 @@
                     </select>
                 </div>
                 
-                <!-- New fields for series -->
                 <div id="seriesFields" class="hidden">
                     <div class="mb-4">
                         <label for="numberOfSeasons" class="block text-gray-400 text-sm font-bold mb-2">Nombre de saisons :</label>
@@ -233,7 +222,6 @@
                     <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateSeasonEpisodeInputs('add')">Générer champs de saisons et d'épisodes</button>
                     
                     <div id="seasonEpisodeInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
-                        <!-- Season and Episode input fields will be generated here -->
                         <p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d'épisodes" ci-dessus.</p>
                     </div>
                 </div>
@@ -246,7 +234,6 @@
         </div>
     </div>
 
-    <!-- Edit Film/Series Modal (New) -->
     <div id="editMovieModal" class="modal">
         <div class="modal-content">
             <span class="close-button" onclick="window.closeEditModal()">&times;</span>
@@ -279,7 +266,6 @@
                     </select>
                 </div>
 
-                <!-- Fields for series in Edit Modal -->
                 <div id="editSeriesFields" class="hidden">
                     <div class="mb-4">
                         <label for="editNumberOfSeasons" class="block text-gray-400 text-sm font-bold mb-2">Nombre de saisons :</label>
@@ -288,7 +274,6 @@
                     <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateSeasonEpisodeInputs('edit')">Générer champs de saisons et d'épisodes</button>
                     
                     <div id="editSeasonEpisodeInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
-                        <!-- Season and Episode input fields will be generated here -->
                         <p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d'épisodes" ci-dessus.</p>
                     </div>
                 </div>
@@ -381,6 +366,7 @@
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
+                window.allContentData = contentList; // Store all content globally for filtering
                 window.displayContent(contentList); // Call global displayContent
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
@@ -599,6 +585,10 @@
         const editSeasonEpisodeInputsContainer = document.getElementById('editSeasonEpisodeInputsContainer'); // Edit modal container for season/episode inputs
         const editContentForm = document.getElementById('editContentForm');
 
+        // Added for search functionality
+        const contentSearchInput = document.getElementById('contentSearchInput');
+        window.allContentData = []; // To store all fetched content for client-side filtering
+
         // Made openAddModal global
         window.openAddModal = () => {
             addMovieModal.style.display = 'flex';
@@ -673,7 +663,7 @@
 
                 if (combinedResults.length === 0) {
                     tmdbSearchResults.innerHTML = '';
-                    noTmdbResults.classList.remove('hidden');
+                    noTmdbResults.classList.add('hidden');
                 } else {
                     tmdbSearchResults.innerHTML = '';
                     combinedResults.forEach(result => {
@@ -865,6 +855,21 @@
             }
             window.displayMessage(`Champs vidéo générés pour la Saison ${seasonNumber}.`, 'success');
         };
+
+        // Filter content based on search input
+        window.filterContent = () => {
+            const searchTerm = contentSearchInput.value.toLowerCase();
+            const filteredContent = window.allContentData.filter(content =>
+                content.title.toLowerCase().includes(searchTerm) ||
+                content.description.toLowerCase().includes(searchTerm) ||
+                (content.genre && content.genre.some(g => g.toLowerCase().includes(searchTerm))) ||
+                content.id.toLowerCase().includes(searchTerm)
+            );
+            window.displayContent(filteredContent);
+        };
+
+        // Event listener for search input (live search)
+        contentSearchInput.addEventListener('keyup', window.filterContent);
 
 
         addContentForm.addEventListener('submit', async (e) => {

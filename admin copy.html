@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nightflix Admin</title>
+    <title>PafStreaming Admin</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
@@ -71,14 +71,19 @@
         .tmdb-result-card:hover {
             transform: translateY(-5px);
         }
+        .episode-input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
     </style>
 </head>
 <body class="flex min-h-screen">
 
-    <!-- Message Box (Moved here to be loaded early) -->
+    <!-- Message Box -->
     <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300" style="opacity: 0;"></div>
 
-    <!-- Custom Confirmation Modal (Moved here to be loaded early) -->
+    <!-- Custom Confirmation Modal -->
     <div id="customConfirmModal" class="modal">
         <div class="modal-content max-w-sm text-center">
             <h2 class="text-xl font-bold mb-4">Confirmation</h2>
@@ -92,7 +97,7 @@
 
     <!-- Sidebar -->
     <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
-        <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">Nightflix</div>
+        <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">PafSStreaming</div>
         <nav class="w-full">
             <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l-7 7m7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -204,18 +209,36 @@
                     <label for="contentPosterUrl" class="block text-gray-400 text-sm font-bold mb-2">URL de l'affiche (TMDB) :</label>
                     <input type="text" id="contentPosterUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
-                 <div class="mb-6">
+                 
+                <div class="mb-6" id="filmVideoUrlDiv">
                     <label for="contentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien de la vidéo (MP4, YouTube, etc.) :</label>
-                    <input type="url" id="contentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie.mp4" required>
+                    <input type="url" id="contentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie.mp4">
                 </div>
+
                 <div class="mb-6">
                     <label for="contentType" class="block text-gray-400 text-sm font-bold mb-2">Type de contenu :</label>
-                    <select id="contentType" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="contentType" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="window.toggleSeriesFields('add')">
                         <option value="film">Film</option>
                         <option value="serie">Série</option>
                     </select>
                 </div>
-                <div class="flex justify-end space-x-4">
+                
+                <!-- New fields for series -->
+                <div id="seriesFields" class="hidden">
+                    <div class="mb-4">
+                        <label for="numberOfSeasons" class="block text-gray-400 text-sm font-bold mb-2">Nombre de saisons :</label>
+                        <input type="number" id="numberOfSeasons" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
+                    </div>
+                    
+                    <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateSeasonEpisodeInputs('add')">Générer champs de saisons et d'épisodes</button>
+                    
+                    <div id="seasonEpisodeInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
+                        <!-- Season and Episode input fields will be generated here -->
+                        <p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d'épisodes" ci-dessus.</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
                     <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="window.closeAddModal()">Annuler</button>
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Ajouter</button>
                 </div>
@@ -223,11 +246,67 @@
         </div>
     </div>
 
+    <!-- Edit Film/Series Modal (New) -->
+    <div id="editMovieModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="window.closeEditModal()">&times;</span>
+            <h2 class="text-2xl font-bold mb-6 text-white">Modifier un film / série</h2>
+            <form id="editContentForm">
+                <input type="hidden" id="editContentId">
+                <div class="mb-4">
+                    <label for="editContentTitle" class="block text-gray-400 text-sm font-bold mb-2">Titre :</label>
+                    <input type="text" id="editContentTitle" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editContentDescription" class="block text-gray-400 text-sm font-bold mb-2">Description :</label>
+                    <textarea id="editContentDescription" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-32" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="editContentPosterUrl" class="block text-gray-400 text-sm font-bold mb-2">URL de l'affiche :</label>
+                    <input type="text" id="editContentPosterUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                
+                <div class="mb-6" id="editFilmVideoUrlDiv">
+                    <label for="editContentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien de la vidéo (MP4, YouTube, etc.) :</label>
+                    <input type="url" id="editContentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="mb-6">
+                    <label for="editContentType" class="block text-gray-400 text-sm font-bold mb-2">Type de contenu :</label>
+                    <select id="editContentType" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="window.toggleSeriesFields('edit')">
+                        <option value="film">Film</option>
+                        <option value="serie">Série</option>
+                    </select>
+                </div>
+
+                <!-- Fields for series in Edit Modal -->
+                <div id="editSeriesFields" class="hidden">
+                    <div class="mb-4">
+                        <label for="editNumberOfSeasons" class="block text-gray-400 text-sm font-bold mb-2">Nombre de saisons :</label>
+                        <input type="number" id="editNumberOfSeasons" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
+                    </div>
+                    <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateSeasonEpisodeInputs('edit')">Générer champs de saisons et d'épisodes</button>
+                    
+                    <div id="editSeasonEpisodeInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
+                        <!-- Season and Episode input fields will be generated here -->
+                        <p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d'épisodes" ci-dessus.</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="window.closeEditModal()">Annuler</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Enregistrer les modifications</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <script type="module">
-        // Import statements are at the top due to type="module"
+        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
         // Your web app's Firebase configuration
@@ -292,10 +371,8 @@
                 return;
             }
 
-            // Path for user-specific data (recommended for admin panel)
-            const contentCollectionRef = collection(window.db, `users/${window.userId}/films_series`);
-            // If you want all admins to see/edit the SAME content, use a global collection path:
-            // const contentCollectionRef = collection(window.db, `all_films_series`);
+            // Path for ALL public data
+            const contentCollectionRef = collection(window.db, `all_films_series`);
 
             const q = query(contentCollectionRef);
 
@@ -328,10 +405,15 @@
             contents.forEach(content => {
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700 last:border-b-0';
+                let genreText = content.genre && Array.isArray(content.genre) ? content.genre.join(', ') : 'N/A';
+                if (content.genre && typeof content.genre === 'string') { // Handle cases where genre might be a string from previous saves
+                    genreText = content.genre;
+                }
+
                 row.innerHTML = `
                     <td class="py-3 px-4 truncate max-w-[100px]">${content.id}</td>
                     <td class="py-3 px-4">${content.title}</td>
-                    <td class="py-3 px-4">${content.genre ? content.genre.join(', ') : 'N/A'}</td>
+                    <td class="py-3 px-4">${genreText}</td>
                     <td class="py-3 px-4">
                         <button class="text-blue-400 hover:text-blue-300" onclick="window.editContent('${content.id}')">Modifier</button>
                         <button class="text-red-400 hover:text-red-300 ml-2" onclick="window.deleteContent('${content.id}')">Supprimer</button>
@@ -348,7 +430,12 @@
                 return;
             }
             try {
-                const docRef = await addDoc(collection(window.db, `users/${window.userId}/films_series`), {
+                // For series, stringify the episodes data
+                if (contentData.type === 'serie' && contentData.seriesEpisodes) {
+                    contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
+                }
+
+                const docRef = await addDoc(collection(window.db, `all_films_series`), { // Changed collection path here
                     ...contentData,
                     createdAt: Date.now() // Add timestamp for sorting
                 });
@@ -361,10 +448,70 @@
             }
         };
 
-        // Placeholder for edit functionality (made global)
-        window.editContent = (contentId) => {
-            window.displayMessage(`Fonctionnalité "Modifier" pour l'ID ${contentId} n'est pas encore implémentée.`, 'info');
+        // Function to edit existing content from Firestore (made global)
+        window.editContent = async (contentId) => {
+            if (!window.db || !window.userId) {
+                window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
+                return;
+            }
+
+            try {
+                const docRef = doc(window.db, `all_films_series`, contentId); // Changed collection path here
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('editContentId').value = contentId;
+                    document.getElementById('editContentTitle').value = data.title;
+                    document.getElementById('editContentDescription').value = data.description;
+                    document.getElementById('editContentPosterUrl').value = data.posterUrl;
+                    document.getElementById('editContentType').value = data.type;
+
+                    // Populate fields based on type
+                    if (data.type === 'film') {
+                        document.getElementById('editContentVideoUrl').value = data.videoUrl || '';
+                    } else if (data.type === 'serie') {
+                        document.getElementById('editNumberOfSeasons').value = data.seriesEpisodes ? JSON.parse(data.seriesEpisodes).length : 1;
+                        // Dynamically generate episode fields for editing
+                        window.generateSeasonEpisodeInputs('edit', data.seriesEpisodes ? JSON.parse(data.seriesEpisodes) : []);
+                    }
+                    
+                    window.toggleSeriesFields('edit'); // Adjust visibility based on selected type
+
+                    window.openEditModal(); // Open the edit modal
+                } else {
+                    window.displayMessage("Contenu non trouvé pour modification.", 'error');
+                }
+            } catch (e) {
+                console.error("Erreur lors du chargement pour modification: ", e);
+                window.displayMessage(`Erreur de chargement pour modification: ${e.message}`, 'error');
+            }
         };
+
+        // Function to update existing content in Firestore (made global)
+        window.updateContentInFirestore = async (contentId, contentData) => {
+            if (!window.db || !window.userId) {
+                window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
+                return;
+            }
+            try {
+                const docRef = doc(window.db, `all_films_series`, contentId); // Changed collection path here
+                
+                // For series, stringify the episodes data
+                if (contentData.type === 'serie' && contentData.seriesEpisodes) {
+                    contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
+                }
+
+                await updateDoc(docRef, contentData);
+                console.log("Document mis à jour avec ID: ", contentId);
+                window.displayMessage("Film/Série mis à jour avec succès !", 'success');
+                window.closeEditModal();
+            } catch (e) {
+                console.error("Erreur lors de la mise à jour du document: ", e);
+                window.displayMessage(`Erreur lors de la mise à jour: ${e.message}`, 'error');
+            }
+        };
+
 
         // Function to delete content from Firestore (made global)
         window.deleteContent = async (contentId) => {
@@ -374,7 +521,7 @@
             }
             window.showCustomConfirm('Êtes-vous sûr de vouloir supprimer ce contenu ?', async () => {
                 try {
-                    await deleteDoc(doc(window.db, `users/${window.userId}/films_series`, contentId));
+                    await deleteDoc(doc(window.db, `all_films_series`, contentId)); // Changed collection path here
                     window.displayMessage("Contenu supprimé avec succès !", 'success');
                 } catch (e) {
                     console.error("Erreur lors de la suppression du document: ", e);
@@ -423,15 +570,34 @@
         const TMDB_POSTER_FALLBACK = 'https://placehold.co/200x300/333/EEE?text=Pas+d\'affiche';
 
         const addMovieModal = document.getElementById('addMovieModal');
+        const editMovieModal = document.getElementById('editMovieModal'); // New edit modal element
+
         const tmdbSearchInput = document.getElementById('tmdbSearchInput');
         const tmdbSearchResults = document.getElementById('tmdbSearchResults');
         const noTmdbResults = document.getElementById('noTmdbResults');
-        const contentTitle = document.getElementById('contentTitle');
-        const contentDescription = document.getElementById('contentDescription');
-        const contentPosterUrl = document.getElementById('contentPosterUrl');
-        const contentVideoUrl = document.getElementById('contentVideoUrl');
-        const contentType = document.getElementById('contentType'); // New select element
+
+        const contentTitle = document.getElementById('contentTitle'); // Add modal
+        const contentDescription = document.getElementById('contentDescription'); // Add modal
+        const contentPosterUrl = document.getElementById('contentPosterUrl'); // Add modal
+        const contentVideoUrl = document.getElementById('contentVideoUrl'); // Add modal for films
+        const filmVideoUrlDiv = document.getElementById('filmVideoUrlDiv'); // Div containing film video URL input
+        const contentType = document.getElementById('contentType'); // Add modal
+        const numberOfSeasonsInput = document.getElementById('numberOfSeasons'); // Add modal
+        const seriesFieldsDiv = document.getElementById('seriesFields'); // Add modal series fields div
+        const seasonEpisodeInputsContainer = document.getElementById('seasonEpisodeInputsContainer'); // Add modal container for season/episode inputs
         const addContentForm = document.getElementById('addContentForm');
+
+        const editContentId = document.getElementById('editContentId'); // Edit modal
+        const editContentTitle = document.getElementById('editContentTitle'); // Edit modal
+        const editContentDescription = document.getElementById('editContentDescription'); // Edit modal
+        const editContentPosterUrl = document.getElementById('editContentPosterUrl'); // Edit modal
+        const editContentVideoUrl = document.getElementById('editContentVideoUrl'); // Edit modal for films
+        const editFilmVideoUrlDiv = document.getElementById('editFilmVideoUrlDiv'); // Edit modal div for film video URL
+        const editContentType = document.getElementById('editContentType'); // Edit modal
+        const editNumberOfSeasons = document.getElementById('editNumberOfSeasons'); // Edit modal
+        const editSeriesFields = document.getElementById('editSeriesFields'); // Edit modal series fields div
+        const editSeasonEpisodeInputsContainer = document.getElementById('editSeasonEpisodeInputsContainer'); // Edit modal container for season/episode inputs
+        const editContentForm = document.getElementById('editContentForm');
 
         // Made openAddModal global
         window.openAddModal = () => {
@@ -440,6 +606,8 @@
             tmdbSearchResults.innerHTML = '';
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
+            window.toggleSeriesFields('add'); // Ensure correct fields are shown/hidden on open
+            seasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>'; // Clear episode inputs on open
         };
 
         // Made closeAddModal global
@@ -447,10 +615,26 @@
             addMovieModal.style.display = 'none';
         };
 
+        // Made openEditModal global (New)
+        window.openEditModal = () => {
+            editMovieModal.style.display = 'flex';
+        };
+
+        // Made closeEditModal global (New)
+        window.closeEditModal = () => {
+            editMovieModal.style.display = 'none';
+            // Clear generated fields when closing edit modal
+            editSeasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>';
+        };
+
+
         // Close the modal if user clicks outside of it
         window.onclick = function(event) {
             if (event.target == addMovieModal) {
                 window.closeAddModal(); // Call global closeAddModal
+            }
+            if (event.target == editMovieModal) { // Close edit modal
+                window.closeEditModal();
             }
             // Also close custom confirm modal if clicked outside
             const customConfirmModal = document.getElementById('customConfirmModal');
@@ -497,18 +681,20 @@
                         const description = result.overview || 'Pas de description.';
                         const posterPath = result.poster_path;
                         const releaseDate = result.release_date || result.first_air_date || 'N/A';
-                        const type = result.media_type === 'movie' ? 'Film' : (result.media_type === 'tv' ? 'Série' : 'Inconnu');
+                        const type = result.media_type === 'movie' ? 'film' : (result.media_type === 'tv' ? 'serie' : 'unknown'); // Use 'film'/'serie' directly
                         const genreIds = result.genre_ids || []; // Array of genre IDs
                         const id = result.id; // TMDB ID
+                        const numberOfSeasons = result.number_of_seasons;
 
                         const card = document.createElement('div');
                         card.className = 'tmdb-result-card p-2 rounded-lg shadow-md text-center';
                         card.innerHTML = `
                             <img src="${posterPath ? TMDB_IMAGE_BASE_URL + posterPath : TMDB_POSTER_FALLBACK}" alt="${title}" class="w-full h-48 object-cover rounded-lg mb-2">
                             <h4 class="font-semibold text-white text-md truncate mb-1">${title}</h4>
-                            <p class="text-gray-400 text-xs">${type} (${releaseDate.split('-')[0]})</p>
+                            <p class="text-gray-400 text-xs">${type === 'film' ? 'Film' : 'Série'} (${releaseDate.split('-')[0]})</p>
                         `;
-                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds); // Call global selectTmdbResult
+                        // Pass new fields to selectTmdbResult
+                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons);
                         tmdbSearchResults.appendChild(card);
                     });
                 }
@@ -520,14 +706,20 @@
         };
 
         // Made selectTmdbResult global
-        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds) => {
+        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
-            contentType.value = type.toLowerCase().includes('film') ? 'film' : 'serie'; // Set type based on TMDB result
+            contentType.value = type; // Set type directly from TMDB result
+
+            // Set seasons if it's a series
+            if (contentType.value === 'serie') {
+                numberOfSeasonsInput.value = numberOfSeasons || 1;
+            }
+            window.toggleSeriesFields('add'); // Update visibility for add modal
 
             // Fetch full genre names from TMDB API if needed
-            const genreNames = await window.getGenreNames(genreIds, type === 'Film' ? 'movie' : 'tv'); // Call global getGenreNames
+            const genreNames = await window.getGenreNames(genreIds, type === 'film' ? 'movie' : 'tv'); // Call global getGenreNames
             contentDescription.value = `${description}\n\nGenres: ${genreNames.join(', ')}`;
 
 
@@ -556,6 +748,124 @@
             }
         };
 
+        // Toggle visibility of series-specific fields based on modal type (add/edit)
+        window.toggleSeriesFields = (modalType) => {
+            let currentContentType, filmVideoDiv, seriesFieldsDivToToggle, seasonsInputToUse, seasonEpisodeContainerToUse;
+
+            if (modalType === 'add') {
+                currentContentType = contentType.value;
+                filmVideoDiv = filmVideoUrlDiv;
+                seriesFieldsDivToToggle = seriesFieldsDiv;
+                seasonsInputToUse = numberOfSeasonsInput;
+                seasonEpisodeContainerToUse = seasonEpisodeInputsContainer;
+            } else if (modalType === 'edit') {
+                currentContentType = editContentType.value;
+                filmVideoDiv = editFilmVideoUrlDiv;
+                seriesFieldsDivToToggle = editSeriesFields;
+                seasonsInputToUse = editNumberOfSeasons;
+                seasonEpisodeContainerToUse = editSeasonEpisodeInputsContainer;
+            }
+
+            if (currentContentType === 'serie') {
+                seriesFieldsDivToToggle.classList.remove('hidden');
+                filmVideoDiv.classList.add('hidden'); // Hide film video URL for series
+                contentVideoUrl.removeAttribute('required'); // No longer required for series
+                editContentVideoUrl.removeAttribute('required'); // No longer required for series in edit modal
+            } else { // 'film'
+                seriesFieldsDivToToggle.classList.add('hidden');
+                filmVideoDiv.classList.remove('hidden'); // Show film video URL for films
+                contentVideoUrl.setAttribute('required', 'true'); // Required for films
+                editContentVideoUrl.setAttribute('required', 'true'); // Required for films in edit modal
+                // Clear season/episode inputs when changing type, to avoid stale data
+                seasonEpisodeContainerToUse.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>';
+            }
+        };
+
+        // Generate season and episode input fields (made global, now takes modal type and optional existing data)
+        window.generateSeasonEpisodeInputs = (modalType, existingSeriesData = []) => {
+            let numSeasonsInput, containerDiv;
+
+            if (modalType === 'add') {
+                numSeasonsInput = numberOfSeasonsInput;
+                containerDiv = seasonEpisodeInputsContainer;
+            } else if (modalType === 'edit') {
+                numSeasonsInput = editNumberOfSeasons;
+                containerDiv = editSeasonEpisodeInputsContainer;
+            }
+
+            const numSeasons = parseInt(numSeasonsInput.value, 10);
+
+            if (isNaN(numSeasons) || numSeasons < 1) {
+                window.displayMessage("Veuillez entrer un nombre valide de saisons (minimum 1).", 'error');
+                return;
+            }
+
+            containerDiv.innerHTML = ''; // Clear previous inputs
+
+            for (let s = 1; s <= numSeasons; s++) {
+                const seasonContainer = document.createElement('div');
+                seasonContainer.className = 'bg-gray-700 p-4 rounded-lg mb-4';
+                
+                const existingSeason = existingSeriesData.find(season => season.seasonNumber === s);
+                const existingNumEpisodes = existingSeason && existingSeason.episodes ? existingSeason.episodes.length : 1;
+
+                seasonContainer.innerHTML = `
+                    <h4 class="text-lg font-semibold text-white mb-2">Saison ${s}</h4>
+                    <div class="mb-4">
+                        <label for="${modalType}NumEpisodes_S${s}" class="block text-gray-400 text-sm font-bold mb-2">Nombre d'épisodes pour Saison ${s} :</label>
+                        <input type="number" id="${modalType}NumEpisodes_S${s}" class="w-full p-2 rounded-lg bg-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" min="1" value="${existingNumEpisodes}">
+                    </div>
+                    <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.generateEpisodeVideoInputs(${s}, '${modalType}')">Générer champs vidéo pour Saison ${s}</button>
+                    <div id="${modalType}EpisodeVideoInputs_S${s}" class="mt-4 episode-input-grid">
+                        <p class="text-gray-400 col-span-full text-center">Cliquez sur "Générer champs vidéo..."</p>
+                    </div>
+                `;
+                containerDiv.appendChild(seasonContainer);
+
+                // If existing data, auto-generate episode video inputs
+                if (existingSeason && existingSeason.episodes) {
+                    window.generateEpisodeVideoInputs(s, modalType, existingSeason.episodes);
+                }
+            }
+            window.displayMessage("Champs de saisons générés. Spécifiez les épisodes pour chaque saison.", 'success');
+        };
+
+        // Generate video URL inputs for specific season (made global, now takes modal type and optional existing data)
+        window.generateEpisodeVideoInputs = (seasonNumber, modalType, existingEpisodes = []) => {
+            let numEpisodesInput, episodeVideoInputsDiv;
+
+            if (modalType === 'add') {
+                numEpisodesInput = document.getElementById(`addNumEpisodes_S${seasonNumber}`);
+                episodeVideoInputsDiv = document.getElementById(`addEpisodeVideoInputs_S${seasonNumber}`);
+            } else if (modalType === 'edit') {
+                numEpisodesInput = document.getElementById(`editNumEpisodes_S${seasonNumber}`);
+                episodeVideoInputsDiv = document.getElementById(`editEpisodeVideoInputs_S${seasonNumber}`);
+            }
+            
+            const numEpisodes = parseInt(numEpisodesInput.value, 10);
+
+            if (isNaN(numEpisodes) || numEpisodes < 1) {
+                window.displayMessage("Veuillez entrer un nombre valide d'épisodes pour cette saison (minimum 1).", 'error');
+                return;
+            }
+
+            episodeVideoInputsDiv.innerHTML = ''; // Clear previous inputs
+
+            for (let e = 1; e <= numEpisodes; e++) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'mb-2';
+                const existingEpisode = existingEpisodes.find(ep => ep.episodeNumber === e);
+                const existingVideoUrl = existingEpisode ? existingEpisode.videoUrl : '';
+
+                inputGroup.innerHTML = `
+                    <label for="${modalType}VideoUrl_S${seasonNumber}E${e}" class="block text-gray-400 text-sm mb-1">S${seasonNumber} E${e} (Lien vidéo) :</label>
+                    <input type="url" id="${modalType}VideoUrl_S${seasonNumber}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz.html" value="${existingVideoUrl}">
+                `;
+                episodeVideoInputsDiv.appendChild(inputGroup);
+            }
+            window.displayMessage(`Champs vidéo générés pour la Saison ${seasonNumber}.`, 'success');
+        };
+
 
         addContentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -563,13 +873,89 @@
                 title: contentTitle.value,
                 description: contentDescription.value,
                 posterUrl: contentPosterUrl.value,
-                videoUrl: contentVideoUrl.value,
                 type: contentType.value, // 'film' or 'serie'
                 genre: contentDescription.value.split('Genres: ')[1] ? contentDescription.value.split('Genres: ')[1].split(', ') : [] // Simple genre extraction
             };
 
+            // Handle video URLs based on type
+            if (newContent.type === 'film') {
+                newContent.videoUrl = contentVideoUrl.value;
+            } else if (newContent.type === 'serie') {
+                const seriesEpisodes = [];
+                const numSeasons = parseInt(numberOfSeasonsInput.value, 10);
+
+                for (let s = 1; s <= numSeasons; s++) {
+                    const numEpisodesInput = document.getElementById(`addNumEpisodes_S${s}`);
+                    if (!numEpisodesInput) {
+                        window.displayMessage(`Veuillez générer et remplir les épisodes pour la Saison ${s}.`, 'error');
+                        return; // Stop submission if fields are missing
+                    }
+                    const numEpisodes = parseInt(numEpisodesInput.value, 10);
+                    const season = { seasonNumber: s, episodes: [] };
+                    for (let e = 1; e <= numEpisodes; e++) {
+                        const episodeVideoUrlInput = document.getElementById(`addVideoUrl_S${s}E${e}`);
+                        if (!episodeVideoUrlInput) {
+                             window.displayMessage(`Lien vidéo manquant pour Saison ${s}, Épisode ${e}.`, 'error');
+                             return; // Stop submission if fields are missing
+                        }
+                        const episodeVideoUrl = episodeVideoUrlInput.value;
+                        season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
+                    }
+                    seriesEpisodes.push(season);
+                }
+                newContent.seriesEpisodes = seriesEpisodes; // Store the complex structure
+            }
+
             await window.addContentToFirestore(newContent); // Call global addContentToFirestore
         });
+
+
+        editContentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const contentId = editContentId.value;
+            const updatedContent = {
+                title: editContentTitle.value,
+                description: editContentDescription.value,
+                posterUrl: editContentPosterUrl.value,
+                type: editContentType.value,
+                genre: editContentDescription.value.split('Genres: ')[1] ? editContentDescription.value.split('Genres: ')[1].split(', ') : []
+            };
+
+            if (updatedContent.type === 'film') {
+                updatedContent.videoUrl = editContentVideoUrl.value;
+                updatedContent.seriesEpisodes = null; // Ensure series data is removed if changing to film
+            } else if (updatedContent.type === 'serie') {
+                const seriesEpisodes = [];
+                const numSeasons = parseInt(editNumberOfSeasons.value, 10);
+
+                for (let s = 1; s <= numSeasons; s++) {
+                    const numEpisodesInput = document.getElementById(`editNumEpisodes_S${s}`);
+                    if (!numEpisodesInput) {
+                        window.displayMessage(`Veuillez générer et remplir les épisodes pour la Saison ${s}.`, 'error');
+                        return; // Stop submission if fields are missing
+                    }
+                    const numEpisodes = parseInt(numEpisodesInput.value, 10);
+                    const season = { seasonNumber: s, episodes: [] };
+                    for (let e = 1; e <= numEpisodes; e++) {
+                        const episodeVideoUrlInput = document.getElementById(`editVideoUrl_S${s}E${e}`);
+                        if (!episodeVideoUrlInput) {
+                            window.displayMessage(`Lien vidéo manquant pour Saison ${s}, Épisode ${e}.`, 'error');
+                            return; // Stop submission if fields are missing
+                        }
+                        const episodeVideoUrl = episodeVideoUrlInput.value;
+                        season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
+                    }
+                    seriesEpisodes.push(season);
+                }
+                updatedContent.seriesEpisodes = seriesEpisodes;
+                updatedContent.videoUrl = null; // Ensure film video URL is removed if changing to series
+            }
+
+            await window.updateContentInFirestore(contentId, updatedContent);
+        });
+
+        // Initial call to set correct field visibility on page load for the add form
+        window.addEventListener('DOMContentLoaded', () => window.toggleSeriesFields('add'));
     </script>
 </body>
 </html>
