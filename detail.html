@@ -88,6 +88,7 @@
                 const contentDescriptionElem = document.getElementById('contentDescription');
                 const playerContainer = document.getElementById('playerContainer');
                 const playMainContentButton = document.getElementById('playMainContentButton'); // The "Lecture" button
+                const episodesSection = document.getElementById('episodesSection');
 
                 if (contentSnap.exists()) {
                     const data = contentSnap.data();
@@ -126,6 +127,43 @@
                         playMainContentButton.style.display = 'none';
                     }
 
+                    // Handle series episodes
+                    if (data.type === 'serie' && data.numberOfSeasons && data.numberOfEpisodes) {
+                        episodesSection.style.display = 'block'; // Show the section
+                        const episodesGrid = document.getElementById('episodesGrid');
+                        episodesGrid.innerHTML = ''; // Clear previous buttons
+
+                        // For demonstration, let's create buttons for a few episodes
+                        // In a real app, you'd fetch actual episode data
+                        for (let s = 1; s <= data.numberOfSeasons; s++) {
+                            const seasonTitle = document.createElement('h3');
+                            seasonTitle.className = 'text-xl font-semibold text-white col-span-full mt-4 mb-2';
+                            seasonTitle.textContent = `Saison ${s}`;
+                            episodesGrid.appendChild(seasonTitle);
+
+                            const episodesInSeason = data.numberOfEpisodes; // For simplicity, all seasons have same number of episodes
+                            for (let e = 1; e <= episodesInSeason; e++) {
+                                const episodeButton = document.createElement('button');
+                                episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
+                                episodeButton.textContent = `Épisode ${e}`;
+                                // For simplicity, just load the main series video for now
+                                // In a real app, each episode would have its own videoUrl in Firestore
+                                episodeButton.onclick = () => {
+                                    if (data.videoUrl && (data.videoUrl.includes('uqload.net/embed-') || data.videoUrl.includes('youtube.com/embed/') || data.videoUrl.includes('youtu.be/') || data.videoUrl.includes('dailymotion.com/embed/video/'))) {
+                                        playerContainer.innerHTML = `<iframe src="${data.videoUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full h-full absolute top-0 left-0"></iframe>`;
+                                    } else if (data.videoUrl) {
+                                        playerContainer.innerHTML = `<video controls autoplay src="${data.videoUrl}" class="w-full h-full absolute top-0 left-0">Votre navigateur ne supporte pas l'élément vidéo.</video>`;
+                                    }
+                                    // Optionally, you could update a "currently playing episode" text
+                                    console.log(`Lecture de la Saison ${s}, Épisode ${e}`);
+                                };
+                                episodesGrid.appendChild(episodeButton);
+                            }
+                        }
+                    } else {
+                        episodesSection.style.display = 'none'; // Hide the section for films or if data is missing
+                    }
+
                 } else {
                     window.displayNotFound(); // Call global displayNotFound
                 }
@@ -143,6 +181,7 @@
             document.getElementById('playerContainer').innerHTML = '<p class="text-gray-400 text-center py-10">Contenu non disponible.</p>';
             document.getElementById('playMainContentButton').style.display = 'none'; // Hide play button
             document.getElementById('heroDetailSection').style.backgroundImage = `url('https://placehold.co/1200x500/000000/FFFFFF?text=Contenu+Non+Trouve')`;
+            document.getElementById('episodesSection').style.display = 'none'; // Hide episodes section
         };
 
         // The playContent function is now dynamically set or hidden based on video type
@@ -222,6 +261,14 @@
                 <div id="playerContainer" class="video-container">
                     <!-- Video or Iframe will be injected here dynamically -->
                     <p class="text-gray-400 text-center py-10">Chargement de la vidéo...</p>
+                </div>
+            </section>
+
+            <!-- Episodes Section (Only for series) -->
+            <section id="episodesSection" class="mb-8" style="display: none;">
+                <h2 class="text-3xl font-bold mb-4 text-white">Épisodes</h2>
+                <div id="episodesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <!-- Episode buttons will be injected here -->
                 </div>
             </section>
 

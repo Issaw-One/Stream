@@ -210,11 +210,24 @@
                 </div>
                 <div class="mb-6">
                     <label for="contentType" class="block text-gray-400 text-sm font-bold mb-2">Type de contenu :</label>
-                    <select id="contentType" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="contentType" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="window.toggleSeriesFields()">
                         <option value="film">Film</option>
                         <option value="serie">Série</option>
                     </select>
                 </div>
+                
+                <!-- New fields for series -->
+                <div id="seriesFields" class="hidden">
+                    <div class="mb-4">
+                        <label for="numberOfSeasons" class="block text-gray-400 text-sm font-bold mb-2">Nombre de saisons :</label>
+                        <input type="number" id="numberOfSeasons" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
+                    </div>
+                    <div class="mb-6">
+                        <label for="numberOfEpisodes" class="block text-gray-400 text-sm font-bold mb-2">Nombre d'épisodes par saison :</label>
+                        <input type="number" id="numberOfEpisodes" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
+                    </div>
+                </div>
+
                 <div class="flex justify-end space-x-4">
                     <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="window.closeAddModal()">Annuler</button>
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Ajouter</button>
@@ -418,7 +431,7 @@
 
         // *** REMPLACER 'VOTRE_CLE_API_TMDB' PAR VOTRE VÉRITABLE CLÉ API TMDB ***
         // Vous pouvez obtenir une clé API ici : https://www.themoviedb.org/documentation/api
-        const TMDB_API_KEY = '313671f6e4dcbb4c2d9cb7f561c7ee25';
+        const TMDB_API_KEY = 'VOTRE_CLE_API_TMDB';
         const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
         const TMDB_POSTER_FALLBACK = 'https://placehold.co/200x300/333/EEE?text=Pas+d\'affiche';
 
@@ -431,6 +444,9 @@
         const contentPosterUrl = document.getElementById('contentPosterUrl');
         const contentVideoUrl = document.getElementById('contentVideoUrl');
         const contentType = document.getElementById('contentType'); // New select element
+        const numberOfSeasonsInput = document.getElementById('numberOfSeasons'); // New
+        const numberOfEpisodesInput = document.getElementById('numberOfEpisodes'); // New
+        const seriesFieldsDiv = document.getElementById('seriesFields'); // New
         const addContentForm = document.getElementById('addContentForm');
 
         // Made openAddModal global
@@ -440,6 +456,7 @@
             tmdbSearchResults.innerHTML = '';
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
+            window.toggleSeriesFields(); // Ensure correct fields are shown/hidden on open
         };
 
         // Made closeAddModal global
@@ -500,6 +517,8 @@
                         const type = result.media_type === 'movie' ? 'Film' : (result.media_type === 'tv' ? 'Série' : 'Inconnu');
                         const genreIds = result.genre_ids || []; // Array of genre IDs
                         const id = result.id; // TMDB ID
+                        const numberOfSeasons = result.number_of_seasons; // From TMDB TV data
+                        const numberOfEpisodes = result.number_of_episodes; // From TMDB TV data, often total, not per season
 
                         const card = document.createElement('div');
                         card.className = 'tmdb-result-card p-2 rounded-lg shadow-md text-center';
@@ -508,7 +527,7 @@
                             <h4 class="font-semibold text-white text-md truncate mb-1">${title}</h4>
                             <p class="text-gray-400 text-xs">${type} (${releaseDate.split('-')[0]})</p>
                         `;
-                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds); // Call global selectTmdbResult
+                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons, numberOfEpisodes); // Pass new fields
                         tmdbSearchResults.appendChild(card);
                     });
                 }
@@ -520,14 +539,21 @@
         };
 
         // Made selectTmdbResult global
-        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds) => {
+        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons, numberOfEpisodes) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
             contentType.value = type.toLowerCase().includes('film') ? 'film' : 'serie'; // Set type based on TMDB result
 
+            // Set seasons and episodes if it's a series
+            if (contentType.value === 'serie') {
+                numberOfSeasonsInput.value = numberOfSeasons || 1;
+                numberOfEpisodesInput.value = numberOfEpisodes || 1; // TMDB's number_of_episodes is total, user might want to adjust per season
+            }
+            window.toggleSeriesFields(); // Update visibility
+
             // Fetch full genre names from TMDB API if needed
-            const genreNames = await window.getGenreNames(genreIds, type === 'Film' ? 'movie' : 'tv'); // Call global getGenreNames
+            const genreNames = await window.getGenreNames(genreIds, type.toLowerCase().includes('film') ? 'movie' : 'tv'); // Call global getGenreNames
             contentDescription.value = `${description}\n\nGenres: ${genreNames.join(', ')}`;
 
 
@@ -556,6 +582,19 @@
             }
         };
 
+        // Toggle visibility of series-specific fields (made global)
+        window.toggleSeriesFields = () => {
+            if (contentType.value === 'serie') {
+                seriesFieldsDiv.classList.remove('hidden');
+                numberOfSeasonsInput.setAttribute('required', 'true');
+                numberOfEpisodesInput.setAttribute('required', 'true');
+            } else {
+                seriesFieldsDiv.classList.add('hidden');
+                numberOfSeasonsInput.removeAttribute('required');
+                numberOfEpisodesInput.removeAttribute('required');
+            }
+        };
+
 
         addContentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -567,6 +606,12 @@
                 type: contentType.value, // 'film' or 'serie'
                 genre: contentDescription.value.split('Genres: ')[1] ? contentDescription.value.split('Genres: ')[1].split(', ') : [] // Simple genre extraction
             };
+
+            // Add series specific fields only if type is 'serie'
+            if (newContent.type === 'serie') {
+                newContent.numberOfSeasons = parseInt(numberOfSeasonsInput.value, 10);
+                newContent.numberOfEpisodes = parseInt(numberOfEpisodesInput.value, 10);
+            }
 
             await window.addContentToFirestore(newContent); // Call global addContentToFirestore
         });
