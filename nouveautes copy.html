@@ -9,9 +9,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; // Added 'limit' for optional recent items
+        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
-        // Your web app's Firebase configuration (Assurez-vous que c'est la même que dans index.html et admin.html)
+        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
             authDomain: "stream-df8b9.firebaseapp.com",
@@ -19,33 +20,35 @@
             storageBucket: "stream-df8b9.firebasestorage.app",
             messagingSenderId: "488904493156",
             appId: "1:488904493156:web:9b468948bc244b9a78f771",
-            measurementId: "G-SJFE58Y2JN"
+            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
         };
 
         // Global variables for Firebase services
         window.app = null;
         window.db = null;
         window.auth = null;
-        window.userId = null;
+        window.userId = null; // userId will be set by Firebase Auth
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
             try {
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
-                window.auth = getAuth(window.app);
+                window.auth = getAuth(window.auth);
+                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
+                // Authenticate user anonymously for public access
                 await signInAnonymously(window.auth);
 
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
                         window.userId = user.uid;
-                        console.log("Utilisateur authentifié pour la page Nouveautés:", window.userId);
-                        window.setupContentListener();
+                        console.log("Utilisateur authentifié pour le frontend:", window.userId);
+                        window.setupContentListener(); // Call global setupContentListener
                     } else {
-                        window.userId = crypto.randomUUID();
-                        console.log("Utilisateur anonyme pour la page Nouveautés. ID généré:", window.userId);
-                        window.setupContentListener();
+                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
+                        console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
+                        window.setupContentListener(); // Call global setupContentListener
                     }
                 });
             } catch (error) {
@@ -55,42 +58,36 @@
 
         window.addEventListener('load', initFirebase);
 
-        // Function to set up real-time content listener for the "Nouveautés" page
+        // Function to set up real-time content listener for the main page
         window.setupContentListener = () => {
             if (!window.db || !window.userId) {
                 console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
                 return;
             }
 
+            // Path for ALL public data
             const contentCollectionRef = collection(window.db, `all_films_series`);
-            
-            // MODIFICATION CLÉ : Trier par 'timestamp' en ordre décroissant
-            // Vous pouvez également ajouter un 'where' clause pour filtrer par date si nécessaire
-            // Par exemple, pour les 30 derniers jours:
-            // const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-            // const q = query(contentCollectionRef, orderBy('timestamp', 'desc'), where('timestamp', '>=', thirtyDaysAgo));
-            
-            // Pour afficher simplement les 20 derniers ajouts/modifications, utilisez limit()
-            const q = query(contentCollectionRef, orderBy('timestamp', 'desc'), limit(20)); // Affiche les 20 derniers ajouts/modifications
+            // MODIFIED: Order by a timestamp field in descending order to get latest additions
+            const q = query(contentCollectionRef, orderBy('timestamp', 'desc')); 
 
             onSnapshot(q, (snapshot) => {
                 const contentList = [];
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
-                window.displayContentCards(contentList);
+                window.displayContentCards(contentList); // Call global displayContentCards
             }, (error) => {
-                console.error("Erreur lors de la récupération des nouveautés:", error);
+                console.error("Erreur lors de la récupération des contenus:", error);
             });
         };
 
-        // Function to display content cards (copied from index.html, made global)
+        // Function to display content cards (made global)
         window.displayContentCards = (contents) => {
             const contentGrid = document.getElementById('contentGrid');
             contentGrid.innerHTML = ''; // Clear existing cards
 
             if (contents.length === 0) {
-                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun nouveau film ou série disponible pour le moment.</p>`;
+                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun film ou série disponible pour le moment.</p>`;
                 return;
             }
 
@@ -99,7 +96,7 @@
                 card.className = 'content-card bg-card rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer';
                 card.setAttribute('data-id', content.id);
                 card.setAttribute('data-title', content.title);
-                card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A');
+                card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A'); // Handle both array and string genres
                 card.onclick = () => window.navigateToDetail(content.id);
 
                 card.innerHTML = `
@@ -111,10 +108,10 @@
                 `;
                 contentGrid.appendChild(card);
             });
-            window.filterContent();
+            window.filterContent(); // Call global filterContent
         };
 
-        // JavaScript for search/filter functionality (copied from index.html, made global)
+        // JavaScript for search/filter functionality (made global)
         window.filterContent = () => {
             const searchBar = document.getElementById('searchBar');
             const filter = searchBar.value.toLowerCase();
@@ -124,14 +121,14 @@
                 const title = card.getAttribute('data-title').toLowerCase();
                 const genre = card.getAttribute('data-genre').toLowerCase();
                 if (title.includes(filter) || genre.includes(filter)) {
-                    card.style.display = '';
+                    card.style.display = ''; // Show the card
                 } else {
-                    card.style.display = 'none';
+                    card.style.display = 'none'; // Hide the card
                 }
             });
         };
 
-        // Function to navigate to detail page (copied from index.html, made global)
+        // Function to navigate to detail page (made global)
         window.navigateToDetail = (contentId) => {
             window.location.href = `detail.html?id=${contentId}`;
         };
@@ -139,27 +136,28 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
-            color: #e2e8f0;
+            background-color: #1a202c; /* Dark background color */
+            color: #e2e8f0; /* Light text color */
         }
         .text-neon-blue {
-            color: #4dc0b5;
+            color: #4dc0b5; /* A color resembling neon blue */
         }
         .bg-card {
-            background-color: #2d3748;
+            background-color: #2d3748; /* Background color for cards */
         }
         .gradient-overlay {
             background: linear-gradient(to top, rgba(26,32,44,0.9) 0%, rgba(26,32,44,0) 50%);
         }
+        /* Hide scrollbar for the movie/series carousel */
         .scrollbar-hide::-webkit-scrollbar {
             display: none;
         }
         .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
         }
         .active-link {
-            color: #4dc0b5;
+            color: #4dc0b5; /* Neon blue */
             font-weight: bold;
             border-bottom: 2px solid #4dc0b5;
             padding-bottom: 4px;
@@ -177,15 +175,14 @@
                 <a href="films.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="series.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="nouveautes.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Nouveautés</a>
-            </nav>
+                </nav>
             <div class="flex items-center space-x-4">
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">TELEGRAM</button>
                 <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>
         </header>
 
-        <main class="flex-grow pt-20">
-            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://image.tmdb.org/t/p/original/7k2p9VR1N9lPXK7nc8VLffydt03.jpg');">
+        <main class="flex-grow pt-20"> <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://image.tmdb.org/t/p/original/7k2p9VR1N9lPXK7nc8VLffydt03.jpg');">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
                 <div class="z-0">
                     <h1 class="text-5xl font-bold mb-4">Découvrez les Derniers Ajouts</h1>
