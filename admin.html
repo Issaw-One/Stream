@@ -145,7 +145,7 @@
             <section class="card p-6 rounded-lg shadow-md">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">Tous les films</h2>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="openAddModal()">Ajouter un film / série</button>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left">
@@ -174,7 +174,7 @@
     <!-- Add Film/Series Modal -->
     <div id="addMovieModal" class="modal">
         <div class="modal-content">
-            <span class="close-button" onclick="closeAddModal()">&times;</span>
+            <span class="close-button" onclick="window.closeAddModal()">&times;</span>
             <h2 class="text-2xl font-bold mb-6 text-white">Ajouter un film / série</h2>
 
             <!-- TMDB Search Section -->
@@ -182,7 +182,7 @@
                 <label for="tmdbSearchInput" class="block text-gray-400 text-sm font-bold mb-2">Rechercher sur TMDB :</label>
                 <div class="flex space-x-2">
                     <input type="text" id="tmdbSearchInput" class="flex-grow p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Entrez le titre du film ou de la série">
-                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors" onclick="searchTmdb()">Rechercher</button>
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors" onclick="window.searchTmdb()">Rechercher</button>
                 </div>
                 <div id="tmdbSearchResults" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-80 overflow-y-auto">
                     <!-- TMDB search results will be loaded here -->
@@ -216,7 +216,7 @@
                     </select>
                 </div>
                 <div class="flex justify-end space-x-4">
-                    <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="closeAddModal()">Annuler</button>
+                    <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="window.closeAddModal()">Annuler</button>
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Ajouter</button>
                 </div>
             </form>
@@ -433,31 +433,34 @@
         const contentType = document.getElementById('contentType'); // New select element
         const addContentForm = document.getElementById('addContentForm');
 
-        function openAddModal() {
+        // Made openAddModal global
+        window.openAddModal = () => {
             addMovieModal.style.display = 'flex';
             // Clear previous search results and form fields
             tmdbSearchResults.innerHTML = '';
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
-        }
+        };
 
-        function closeAddModal() {
+        // Made closeAddModal global
+        window.closeAddModal = () => {
             addMovieModal.style.display = 'none';
-        }
+        };
 
         // Close the modal if user clicks outside of it
         window.onclick = function(event) {
             if (event.target == addMovieModal) {
-                closeAddModal();
+                window.closeAddModal(); // Call global closeAddModal
             }
             // Also close custom confirm modal if clicked outside
             const customConfirmModal = document.getElementById('customConfirmModal');
             if (event.target == customConfirmModal) {
                 customConfirmModal.style.display = 'none';
             }
-        }
+        };
 
-        async function searchTmdb() {
+        // Made searchTmdb global
+        window.searchTmdb = async () => {
             const query = tmdbSearchInput.value.trim();
             if (!query) {
                 tmdbSearchResults.innerHTML = '';
@@ -505,7 +508,7 @@
                             <h4 class="font-semibold text-white text-md truncate mb-1">${title}</h4>
                             <p class="text-gray-400 text-xs">${type} (${releaseDate.split('-')[0]})</p>
                         `;
-                        card.onclick = () => selectTmdbResult(title, description, posterPath, type, id, genreIds);
+                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds); // Call global selectTmdbResult
                         tmdbSearchResults.appendChild(card);
                     });
                 }
@@ -514,25 +517,26 @@
                 tmdbSearchResults.innerHTML = '<p class="col-span-full text-red-400 text-center">Erreur lors de la récupération des données TMDB. Vérifiez votre clé API.</p>';
                 noTmdbResults.classList.add('hidden');
             }
-        }
+        };
 
-        async function selectTmdbResult(title, description, posterPath, type, tmdbId, genreIds) {
+        // Made selectTmdbResult global
+        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
             contentType.value = type.toLowerCase().includes('film') ? 'film' : 'serie'; // Set type based on TMDB result
 
             // Fetch full genre names from TMDB API if needed
-            const genreNames = await getGenreNames(genreIds, type === 'Film' ? 'movie' : 'tv');
+            const genreNames = await window.getGenreNames(genreIds, type === 'Film' ? 'movie' : 'tv'); // Call global getGenreNames
             contentDescription.value = `${description}\n\nGenres: ${genreNames.join(', ')}`;
 
 
             tmdbSearchResults.innerHTML = ''; // Clear search results after selection
             noTmdbResults.classList.add('hidden'); // Hide "no results" message
-        }
+        };
 
-        // Helper to get genre names (requires another TMDB API call for genre list)
-        async function getGenreNames(genreIds, mediaType) {
+        // Helper to get genre names (requires another TMDB API call for genre list) (made global)
+        window.getGenreNames = async (genreIds, mediaType) => {
             if (genreIds.length === 0) return [];
             if (TMDB_API_KEY === 'VOTRE_CLE_API_TMDB' || TMDB_API_KEY === '') {
                  console.warn("Clé API TMDB manquante pour les genres.");
@@ -550,7 +554,7 @@
                 console.error('Erreur lors de la récupération des genres TMDB :', error);
                 return [];
             }
-        }
+        };
 
 
         addContentForm.addEventListener('submit', async (e) => {
