@@ -71,14 +71,19 @@
         .tmdb-result-card:hover {
             transform: translateY(-5px);
         }
+        .episode-input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
     </style>
 </head>
 <body class="flex min-h-screen">
 
-    <!-- Message Box (Moved here to be loaded early) -->
+    <!-- Message Box -->
     <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300" style="opacity: 0;"></div>
 
-    <!-- Custom Confirmation Modal (Moved here to be loaded early) -->
+    <!-- Custom Confirmation Modal -->
     <div id="customConfirmModal" class="modal">
         <div class="modal-content max-w-sm text-center">
             <h2 class="text-xl font-bold mb-4">Confirmation</h2>
@@ -204,10 +209,12 @@
                     <label for="contentPosterUrl" class="block text-gray-400 text-sm font-bold mb-2">URL de l'affiche (TMDB) :</label>
                     <input type="text" id="contentPosterUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
-                 <div class="mb-6">
+                 
+                <div class="mb-6" id="filmVideoUrlDiv">
                     <label for="contentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien de la vidéo (MP4, YouTube, etc.) :</label>
-                    <input type="url" id="contentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie.mp4" required>
+                    <input type="url" id="contentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie.mp4">
                 </div>
+
                 <div class="mb-6">
                     <label for="contentType" class="block text-gray-400 text-sm font-bold mb-2">Type de contenu :</label>
                     <select id="contentType" class="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="window.toggleSeriesFields()">
@@ -223,12 +230,18 @@
                         <input type="number" id="numberOfSeasons" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
                     </div>
                     <div class="mb-6">
-                        <label for="numberOfEpisodes" class="block text-gray-400 text-sm font-bold mb-2">Nombre d'épisodes par saison :</label>
-                        <input type="number" id="numberOfEpisodes" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
+                        <label for="numberOfEpisodesPerSeason" class="block text-gray-400 text-sm font-bold mb-2">Nombre d'épisodes par saison :</label>
+                        <input type="number" id="numberOfEpisodesPerSeason" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" value="1">
+                    </div>
+                    <button type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors mb-4" onclick="window.generateEpisodeInputs()">Générer champs d'épisodes</button>
+                    
+                    <div id="episodeVideoInputsContainer" class="max-h-96 overflow-y-auto p-2 rounded-lg bg-gray-800">
+                        <!-- Episode video input fields will be generated here -->
+                        <p class="text-gray-400 text-center">Cliquez sur "Générer champs d'épisodes" ci-dessus.</p>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-4">
+                <div class="flex justify-end space-x-4 mt-6">
                     <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="window.closeAddModal()">Annuler</button>
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Ajouter</button>
                 </div>
@@ -341,10 +354,15 @@
             contents.forEach(content => {
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700 last:border-b-0';
+                let genreText = content.genre && Array.isArray(content.genre) ? content.genre.join(', ') : 'N/A';
+                if (content.genre && typeof content.genre === 'string') { // Handle cases where genre might be a string from previous saves
+                    genreText = content.genre;
+                }
+
                 row.innerHTML = `
                     <td class="py-3 px-4 truncate max-w-[100px]">${content.id}</td>
                     <td class="py-3 px-4">${content.title}</td>
-                    <td class="py-3 px-4">${content.genre ? content.genre.join(', ') : 'N/A'}</td>
+                    <td class="py-3 px-4">${genreText}</td>
                     <td class="py-3 px-4">
                         <button class="text-blue-400 hover:text-blue-300" onclick="window.editContent('${content.id}')">Modifier</button>
                         <button class="text-red-400 hover:text-red-300 ml-2" onclick="window.deleteContent('${content.id}')">Supprimer</button>
@@ -361,6 +379,11 @@
                 return;
             }
             try {
+                // For series, stringify the episodes data
+                if (contentData.type === 'serie' && contentData.seriesEpisodes) {
+                    contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
+                }
+
                 const docRef = await addDoc(collection(window.db, `users/${window.userId}/films_series`), {
                     ...contentData,
                     createdAt: Date.now() // Add timestamp for sorting
@@ -442,11 +465,13 @@
         const contentTitle = document.getElementById('contentTitle');
         const contentDescription = document.getElementById('contentDescription');
         const contentPosterUrl = document.getElementById('contentPosterUrl');
-        const contentVideoUrl = document.getElementById('contentVideoUrl');
+        const contentVideoUrl = document.getElementById('contentVideoUrl'); // For films
+        const filmVideoUrlDiv = document.getElementById('filmVideoUrlDiv'); // Div containing film video URL input
         const contentType = document.getElementById('contentType'); // New select element
         const numberOfSeasonsInput = document.getElementById('numberOfSeasons'); // New
-        const numberOfEpisodesInput = document.getElementById('numberOfEpisodes'); // New
+        const numberOfEpisodesPerSeasonInput = document.getElementById('numberOfEpisodesPerSeason'); // New
         const seriesFieldsDiv = document.getElementById('seriesFields'); // New
+        const episodeVideoInputsContainer = document.getElementById('episodeVideoInputsContainer'); // New container for episode video inputs
         const addContentForm = document.getElementById('addContentForm');
 
         // Made openAddModal global
@@ -457,6 +482,7 @@
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
             window.toggleSeriesFields(); // Ensure correct fields are shown/hidden on open
+            episodeVideoInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs d\'épisodes" ci-dessus.</p>'; // Clear episode inputs on open
         };
 
         // Made closeAddModal global
@@ -517,8 +543,8 @@
                         const type = result.media_type === 'movie' ? 'Film' : (result.media_type === 'tv' ? 'Série' : 'Inconnu');
                         const genreIds = result.genre_ids || []; // Array of genre IDs
                         const id = result.id; // TMDB ID
-                        const numberOfSeasons = result.number_of_seasons; // From TMDB TV data
-                        const numberOfEpisodes = result.number_of_episodes; // From TMDB TV data, often total, not per season
+                        const numberOfSeasons = result.number_of_seasons;
+                        const totalEpisodes = result.number_of_episodes; // TMDB gives total episodes, we'll use it as a hint for "per season"
 
                         const card = document.createElement('div');
                         card.className = 'tmdb-result-card p-2 rounded-lg shadow-md text-center';
@@ -527,7 +553,8 @@
                             <h4 class="font-semibold text-white text-md truncate mb-1">${title}</h4>
                             <p class="text-gray-400 text-xs">${type} (${releaseDate.split('-')[0]})</p>
                         `;
-                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons, numberOfEpisodes); // Pass new fields
+                        // Pass new fields to selectTmdbResult
+                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons, totalEpisodes);
                         tmdbSearchResults.appendChild(card);
                     });
                 }
@@ -539,7 +566,7 @@
         };
 
         // Made selectTmdbResult global
-        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons, numberOfEpisodes) => {
+        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons, totalEpisodes) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
@@ -548,7 +575,12 @@
             // Set seasons and episodes if it's a series
             if (contentType.value === 'serie') {
                 numberOfSeasonsInput.value = numberOfSeasons || 1;
-                numberOfEpisodesInput.value = numberOfEpisodes || 1; // TMDB's number_of_episodes is total, user might want to adjust per season
+                // Try to estimate episodes per season if total episodes are available
+                if (numberOfSeasons && totalEpisodes) {
+                    numberOfEpisodesPerSeasonInput.value = Math.ceil(totalEpisodes / numberOfSeasons);
+                } else {
+                    numberOfEpisodesPerSeasonInput.value = 1;
+                }
             }
             window.toggleSeriesFields(); // Update visibility
 
@@ -586,13 +618,44 @@
         window.toggleSeriesFields = () => {
             if (contentType.value === 'serie') {
                 seriesFieldsDiv.classList.remove('hidden');
-                numberOfSeasonsInput.setAttribute('required', 'true');
-                numberOfEpisodesInput.setAttribute('required', 'true');
+                filmVideoUrlDiv.classList.add('hidden'); // Hide film video URL for series
+                contentVideoUrl.removeAttribute('required'); // No longer required for series
             } else {
                 seriesFieldsDiv.classList.add('hidden');
-                numberOfSeasonsInput.removeAttribute('required');
-                numberOfEpisodesInput.removeAttribute('required');
+                filmVideoUrlDiv.classList.remove('hidden'); // Show film video URL for films
+                contentVideoUrl.setAttribute('required', 'true'); // Required for films
             }
+        };
+
+        // Generate episode input fields (made global)
+        window.generateEpisodeInputs = () => {
+            const numSeasons = parseInt(numberOfSeasonsInput.value, 10);
+            const numEpisodesPerSeason = parseInt(numberOfEpisodesPerSeasonInput.value, 10);
+
+            if (isNaN(numSeasons) || numSeasons < 1 || isNaN(numEpisodesPerSeason) || numEpisodesPerSeason < 1) {
+                window.displayMessage("Veuillez entrer un nombre valide de saisons et d'épisodes (minimum 1).", 'error');
+                return;
+            }
+
+            episodeVideoInputsContainer.innerHTML = ''; // Clear previous inputs
+
+            for (let s = 1; s <= numSeasons; s++) {
+                const seasonHeader = document.createElement('h4');
+                seasonHeader.className = 'text-lg font-semibold text-white mt-4 mb-2';
+                seasonHeader.textContent = `Saison ${s}`;
+                episodeVideoInputsContainer.appendChild(seasonHeader);
+
+                for (let e = 1; e <= numEpisodesPerSeason; e++) {
+                    const inputGroup = document.createElement('div');
+                    inputGroup.className = 'mb-2';
+                    inputGroup.innerHTML = `
+                        <label for="videoUrl_S${s}E${e}" class="block text-gray-400 text-sm mb-1">S${s} E${e} (Lien vidéo) :</label>
+                        <input type="url" id="videoUrl_S${s}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz.html">
+                    `;
+                    episodeVideoInputsContainer.appendChild(inputGroup);
+                }
+            }
+            window.displayMessage("Champs d'épisodes générés !", 'success');
         };
 
 
@@ -602,19 +665,34 @@
                 title: contentTitle.value,
                 description: contentDescription.value,
                 posterUrl: contentPosterUrl.value,
-                videoUrl: contentVideoUrl.value,
                 type: contentType.value, // 'film' or 'serie'
                 genre: contentDescription.value.split('Genres: ')[1] ? contentDescription.value.split('Genres: ')[1].split(', ') : [] // Simple genre extraction
             };
 
-            // Add series specific fields only if type is 'serie'
-            if (newContent.type === 'serie') {
+            // Handle video URLs based on type
+            if (newContent.type === 'film') {
+                newContent.videoUrl = contentVideoUrl.value;
+            } else if (newContent.type === 'serie') {
                 newContent.numberOfSeasons = parseInt(numberOfSeasonsInput.value, 10);
-                newContent.numberOfEpisodes = parseInt(numberOfEpisodesInput.value, 10);
+                newContent.numberOfEpisodesPerSeason = parseInt(numberOfEpisodesPerSeasonInput.value, 10);
+
+                const seriesEpisodes = [];
+                for (let s = 1; s <= newContent.numberOfSeasons; s++) {
+                    const season = { seasonNumber: s, episodes: [] };
+                    for (let e = 1; e <= newContent.numberOfEpisodesPerSeason; e++) {
+                        const episodeVideoUrl = document.getElementById(`videoUrl_S${s}E${e}`).value;
+                        season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
+                    }
+                    seriesEpisodes.push(season);
+                }
+                newContent.seriesEpisodes = seriesEpisodes; // Store the complex structure
             }
 
             await window.addContentToFirestore(newContent); // Call global addContentToFirestore
         });
+
+        // Initial call to set correct field visibility on page load
+        window.addEventListener('DOMContentLoaded', window.toggleSeriesFields);
     </script>
 </body>
 </html>

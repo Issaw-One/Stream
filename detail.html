@@ -59,6 +59,39 @@
 
         window.addEventListener('load', initFirebase);
 
+        // Function to load and play a specific video URL (made global)
+        window.playVideo = (videoUrl) => {
+            const playerContainer = document.getElementById('playerContainer');
+            playerContainer.innerHTML = ''; // Clear previous player
+
+            if (!videoUrl) {
+                playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour cet épisode.</p>';
+                return;
+            }
+
+            // Check if it's an embed URL
+            if (videoUrl.includes('uqload.net/embed-') || videoUrl.includes('youtube.com/embed/') || videoUrl.includes('youtu.be/') || videoUrl.includes('dailymotion.com/embed/video/')) {
+                const iframe = document.createElement('iframe');
+                iframe.setAttribute('src', videoUrl);
+                iframe.setAttribute('frameborder', '0');
+                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                iframe.setAttribute('allowfullscreen', '');
+                iframe.className = 'w-full h-full absolute top-0 left-0';
+                playerContainer.appendChild(iframe);
+            } else {
+                // Assume it's a direct video link (MP4, WebM, etc.)
+                const video = document.createElement('video');
+                video.setAttribute('controls', '');
+                video.setAttribute('autoplay', ''); // Autoplay when an episode is selected
+                video.src = videoUrl;
+                video.className = 'w-full h-full absolute top-0 left-0';
+                video.innerHTML = 'Votre navigateur ne supporte pas l\'élément vidéo.';
+                playerContainer.appendChild(video);
+                video.load();
+            }
+        };
+
+
         // Function to load content details from Firestore (made global)
         window.loadContentDetails = async () => {
             const params = new URLSearchParams(window.location.search);
@@ -86,9 +119,10 @@
                 const heroDetailSection = document.getElementById('heroDetailSection');
                 const contentTitleElem = document.getElementById('contentTitle');
                 const contentDescriptionElem = document.getElementById('contentDescription');
-                const playerContainer = document.getElementById('playerContainer');
                 const playMainContentButton = document.getElementById('playMainContentButton'); // The "Lecture" button
                 const episodesSection = document.getElementById('episodesSection');
+                const episodesGrid = document.getElementById('episodesGrid');
+
 
                 if (contentSnap.exists()) {
                     const data = contentSnap.data();
@@ -97,71 +131,55 @@
                     contentDescriptionElem.textContent = data.description;
                     heroDetailSection.style.backgroundImage = `url('${data.posterUrl || 'https://placehold.co/1200x500/000000/FFFFFF?text=Affiche+Manquante'}')`;
 
-                    // Clear previous player
-                    playerContainer.innerHTML = '';
-
-                    // Check if it's an embed URL
-                    if (data.videoUrl && (data.videoUrl.includes('uqload.net/embed-') || data.videoUrl.includes('youtube.com/embed/') || data.videoUrl.includes('youtu.be/') || data.videoUrl.includes('dailymotion.com/embed/video/'))) {
-                        const iframe = document.createElement('iframe');
-                        iframe.setAttribute('src', data.videoUrl);
-                        iframe.setAttribute('frameborder', '0');
-                        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-                        iframe.setAttribute('allowfullscreen', '');
-                        iframe.className = 'w-full h-full absolute top-0 left-0';
-                        playerContainer.appendChild(iframe);
-                        playMainContentButton.style.display = 'none'; // Hide "Lecture" button as iframe handles play
-                    } else if (data.videoUrl) {
-                        // Assume it's a direct video link (MP4, WebM, etc.)
-                        const video = document.createElement('video');
-                        video.setAttribute('controls', '');
-                        video.src = data.videoUrl;
-                        video.className = 'w-full h-full absolute top-0 left-0';
-                        video.innerHTML = 'Votre navigateur ne supporte pas l\'élément vidéo.';
-                        playerContainer.appendChild(video);
-                        video.load();
-                        playMainContentButton.style.display = ''; // Show "Lecture" button
-                        playMainContentButton.onclick = () => video.play(); // Set click handler to play video
-                    } else {
-                        // No video URL provided
-                        playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour ce contenu.</p>';
-                        playMainContentButton.style.display = 'none';
-                    }
-
-                    // Handle series episodes
-                    if (data.type === 'serie' && data.numberOfSeasons && data.numberOfEpisodes) {
+                    // Handle series episodes or single film video
+                    if (data.type === 'serie' && data.seriesEpisodes) {
                         episodesSection.style.display = 'block'; // Show the section
-                        const episodesGrid = document.getElementById('episodesGrid');
                         episodesGrid.innerHTML = ''; // Clear previous buttons
+                        playMainContentButton.style.display = 'none'; // Hide main play button for series
 
-                        // For demonstration, let's create buttons for a few episodes
-                        // In a real app, you'd fetch actual episode data
-                        for (let s = 1; s <= data.numberOfSeasons; s++) {
-                            const seasonTitle = document.createElement('h3');
-                            seasonTitle.className = 'text-xl font-semibold text-white col-span-full mt-4 mb-2';
-                            seasonTitle.textContent = `Saison ${s}`;
-                            episodesGrid.appendChild(seasonTitle);
-
-                            const episodesInSeason = data.numberOfEpisodes; // For simplicity, all seasons have same number of episodes
-                            for (let e = 1; e <= episodesInSeason; e++) {
-                                const episodeButton = document.createElement('button');
-                                episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
-                                episodeButton.textContent = `Épisode ${e}`;
-                                // For simplicity, just load the main series video for now
-                                // In a real app, each episode would have its own videoUrl in Firestore
-                                episodeButton.onclick = () => {
-                                    if (data.videoUrl && (data.videoUrl.includes('uqload.net/embed-') || data.videoUrl.includes('youtube.com/embed/') || data.videoUrl.includes('youtu.be/') || data.videoUrl.includes('dailymotion.com/embed/video/'))) {
-                                        playerContainer.innerHTML = `<iframe src="${data.videoUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full h-full absolute top-0 left-0"></iframe>`;
-                                    } else if (data.videoUrl) {
-                                        playerContainer.innerHTML = `<video controls autoplay src="${data.videoUrl}" class="w-full h-full absolute top-0 left-0">Votre navigateur ne supporte pas l'élément vidéo.</video>`;
-                                    }
-                                    // Optionally, you could update a "currently playing episode" text
-                                    console.log(`Lecture de la Saison ${s}, Épisode ${e}`);
-                                };
-                                episodesGrid.appendChild(episodeButton);
-                            }
+                        let seriesEpisodesParsed;
+                        try {
+                            seriesEpisodesParsed = JSON.parse(data.seriesEpisodes);
+                        } catch (e) {
+                            console.error("Erreur de parsing JSON pour les épisodes:", e);
+                            seriesEpisodesParsed = [];
                         }
-                    } else {
-                        episodesSection.style.display = 'none'; // Hide the section for films or if data is missing
+
+                        if (seriesEpisodesParsed.length > 0) {
+                            seriesEpisodesParsed.forEach(season => {
+                                const seasonTitle = document.createElement('h3');
+                                seasonTitle.className = 'text-xl font-semibold text-white col-span-full mt-4 mb-2';
+                                seasonTitle.textContent = `Saison ${season.seasonNumber}`;
+                                episodesGrid.appendChild(seasonTitle);
+
+                                if (season.episodes && Array.isArray(season.episodes)) {
+                                    season.episodes.forEach(episode => {
+                                        const episodeButton = document.createElement('button');
+                                        episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
+                                        episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
+                                        episodeButton.onclick = () => window.playVideo(episode.videoUrl);
+                                        episodesGrid.appendChild(episodeButton);
+                                    });
+                                }
+                            });
+                            // Automatically play the first episode if available
+                            if (seriesEpisodesParsed[0] && seriesEpisodesParsed[0].episodes[0]) {
+                                window.playVideo(seriesEpisodesParsed[0].episodes[0].videoUrl);
+                            }
+                        } else {
+                             episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
+                             window.playVideo(null); // Clear player
+                        }
+
+                    } else { // It's a film or series without episode data
+                        episodesSection.style.display = 'none'; // Hide episodes section
+                        playMainContentButton.style.display = ''; // Show main play button for films
+
+                        // Set the onclick for the main play button for films
+                        playMainContentButton.onclick = () => window.playVideo(data.videoUrl);
+
+                        // Automatically play the film if available
+                        window.playVideo(data.videoUrl);
                     }
 
                 } else {
