@@ -6,6 +6,7 @@
     <title id="detailPageTitle">Détails - PafStreaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -160,12 +161,12 @@
                                 }
                             });
                             // Automatically play the first episode of the first season if available
-                            // Removed automatic playback for series; video will only play upon episode selection.
-                            // if (seriesEpisodesParsed[0] && seriesEpisodesParsed[0].episodes[0]) {
-                            //     window.playVideo(seriesEpisodesParsed[0].episodes[0].videoUrl);
-                            // } else {
-                                window.playVideo(null); // Clear player, ensuring "Aucune vidéo disponible pour cet épisode." is shown
-                            // }
+                            if (seriesEpisodesParsed[0] && seriesEpisodesParsed[0].episodes[0]) {
+                                window.playVideo(seriesEpisodesParsed[0].episodes[0].videoUrl);
+                            } else {
+                                episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
+                                window.playVideo(null); // Clear player
+                            }
                         } else {
                              episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
                              window.playVideo(null); // Clear player
@@ -240,6 +241,7 @@
 </head>
 <body class="antialiased">
     <div class="min-h-screen flex flex-col">
+        <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
                 <span class="text-2xl font-bold text-white uppercase tracking-wider">PafStreaming</span>
@@ -249,13 +251,15 @@
                 <a href="films.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="series.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
-                </nav>
+                <!--<a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>-->
+            </nav>
             <div class="flex items-center space-x-4">
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreaming">TELEGRAM</a></button>
                 <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>
         </header>
 
+        <!-- Main Content for Detail Page -->
         <main class="flex-grow pt-20 p-8">
             <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg mb-8" id="heroDetailSection">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
@@ -270,21 +274,38 @@
                 </div>
             </section>
 
+            <!-- Video Player Section -->
             <section class="mb-8">
                 <h2 class="text-3xl font-bold mb-4 text-white">Regarder</h2>
                 <div id="playerContainer" class="video-container">
+                    <!-- Video or Iframe will be injected here dynamically -->
                     <p class="text-gray-400 text-center py-10">Chargement de la vidéo...</p>
                 </div>
             </section>
 
+            <!-- Episodes Section (Only for series) -->
             <section id="episodesSection" class="mb-8" style="display: none;">
                 <h2 class="text-3xl font-bold mb-4 text-white">Épisodes</h2>
                 <div id="episodesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    </div>
+                    <!-- Episode buttons will be injected here -->
+                </div>
             </section>
 
-            </main>
+            <!-- Additional Content/Gallery (similar to the provided image) -->
+            <!--<section>
+                <h2 class="text-3xl font-bold mb-4 text-white">Bande d'annonce et extraits</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+1" alt="Extrait vidéo 1" class="w-full h-auto object-cover rounded-lg shadow-md">
+                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+2" alt="Extrait vidéo 2" class="w-full h-auto object-cover rounded-lg shadow-md">
+                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+3" alt="Extrait vidéo 3" class="w-full h-auto object-cover rounded-lg shadow-md">
+                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+4" alt="Extrait vidéo 4" class="w-full h-auto object-cover rounded-lg shadow-md">
+                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+5" alt="Extrait vidéo 5" class="w-full h-auto object-cover rounded-lg shadow-md">
+                    <img src="https://placehold.co/200x120/555/FFF?text=Extrait+6" alt="Extrait vidéo 6" class="w-full h-auto object-cover rounded-lg shadow-md">
+                </div>
+            </section>-->
+        </main>
 
+        <!-- Footer (optional) -->
         <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
             <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
             <p>Ce site n'héberge auccun films et séries.</p>
