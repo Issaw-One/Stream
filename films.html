@@ -194,13 +194,14 @@
             </section>
 
             <!-- Search Bar -->
-            <section class="p-8">
-                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher un film..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </section>
+            
 
             <!-- Films Grid -->
             <section class="p-8">
                 <h2 class="text-3xl font-bold mb-6 text-white">Tous les Films</h2>
+                <section class="p-8">
+                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher un film..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </section>
                 <div class="relative">
                     <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
                         <!-- Films will be dynamically loaded here by Firestore listener -->
