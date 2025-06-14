@@ -9,37 +9,37 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
+            authDomain: "stream-df8b9.firebaseapp.com",
+            projectId: "stream-df8b9",
+            storageBucket: "stream-df8b9.firebasestorage.app",
+            messagingSenderId: "488904493156",
+            appId: "1:488904493156:web:9b468948bc244b9a78f771",
+            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
+        };
 
         // Global variables for Firebase services
         window.app = null;
         window.db = null;
         window.auth = null;
-        window.userId = null;
-        window.appId = null;
+        window.userId = null; // userId will be set by Firebase Auth
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
             try {
-                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config is missing or empty. Data persistence will not work.");
-                    return;
-                }
-
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
+                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
                 // Authenticate user anonymously for public access
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(window.auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
+                await signInAnonymously(window.auth);
 
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
@@ -47,7 +47,7 @@
                         console.log("Utilisateur authentifié pour le frontend:", window.userId);
                         loadContentDetails();
                     } else {
-                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users, if public data rules are in place
+                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
                         console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
                         loadContentDetails();
                     }
@@ -69,16 +69,17 @@
                 return;
             }
 
-            if (!window.db || !window.userId || !window.appId) {
-                console.warn("Firestore, userId, or appId not ready for content loading. Retrying...");
+            if (!window.db || !window.userId) {
+                console.warn("Firestore ou userId non prêts pour le chargement du contenu. Réessai...");
                 setTimeout(loadContentDetails, 500); // Retry after 500ms
                 return;
             }
 
             try {
-                // Path for private user data (assuming content added via admin is private)
-                const contentDocRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/films_series`, contentId);
-                // const contentDocRef = doc(window.db, `artifacts/${window.appId}/public/data/films_series`, contentId); // Use this if content is public
+                // Path for user-specific data (assuming content added via admin is private)
+                const contentDocRef = doc(window.db, `users/${window.userId}/films_series`, contentId);
+                // If the content is public and not linked to a specific user, use a global path:
+                // const contentDocRef = doc(window.db, `all_films_series`, contentId);
 
                 const contentSnap = await getDoc(contentDocRef);
 

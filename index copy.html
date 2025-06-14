@@ -9,47 +9,47 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
+            authDomain: "stream-df8b9.firebaseapp.com",
+            projectId: "stream-df8b9",
+            storageBucket: "stream-df8b9.firebasestorage.app",
+            messagingSenderId: "488904493156",
+            appId: "1:488904493156:web:9b468948bc244b9a78f771",
+            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
+        };
 
         // Global variables for Firebase services
         window.app = null;
         window.db = null;
         window.auth = null;
-        window.userId = null;
-        window.appId = null;
+        window.userId = null; // userId will be set by Firebase Auth
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
             try {
-                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config is missing or empty. Data persistence will not work.");
-                    return;
-                }
-
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
+                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
                 // Authenticate user anonymously for public access
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(window.auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
+                await signInAnonymously(window.auth);
 
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié pour le frontend:", window.userId);
-                        setupContentListener();
+                        window.setupContentListener(); // Call global setupContentListener
                     } else {
-                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users, if public data rules are in place
+                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
                         console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
-                        setupContentListener();
+                        window.setupContentListener(); // Call global setupContentListener
                     }
                 });
             } catch (error) {
@@ -61,29 +61,34 @@
 
         // Function to set up real-time content listener for the main page
         window.setupContentListener = () => {
-            if (!window.db || !window.userId || !window.appId) {
-                console.warn("Firestore, userId, or appId not ready for content listener setup.");
+            if (!window.db || !window.userId) {
+                console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
                 return;
             }
 
-            // Path for private user data (assuming the content added via admin is private)
-            const contentCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/films_series`);
-            // const contentCollectionRef = collection(window.db, `artifacts/${window.appId}/public/data/films_series`); // Use this if content is public
+            // Path for user-specific data (assuming content added via admin is private)
+            // Be careful with this path: `users/${window.userId}/films_series`
+            // If you want content to be visible to ALL users (even anonymous visitors),
+            // you should store it in a public collection, e.g., `all_films_series`.
+            // For now, it will show content added by the currently signed-in (possibly anonymous) user.
+            const contentCollectionRef = collection(window.db, `users/${window.userId}/films_series`);
+            // If you want to display public content added by anyone, you might use:
+            // const contentCollectionRef = collection(window.db, `all_films_series`);
 
-            const q = query(contentCollectionRef); // orderBy("createdAt", "desc") - commented out due to instructions
+            const q = query(contentCollectionRef);
 
             onSnapshot(q, (snapshot) => {
                 const contentList = [];
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
-                displayContentCards(contentList);
+                window.displayContentCards(contentList); // Call global displayContentCards
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
             });
         };
 
-        // Function to display content cards
+        // Function to display content cards (made global)
         window.displayContentCards = (contents) => {
             const contentGrid = document.getElementById('contentGrid');
             contentGrid.innerHTML = ''; // Clear existing cards
@@ -99,7 +104,8 @@
                 card.setAttribute('data-id', content.id);
                 card.setAttribute('data-title', content.title);
                 card.setAttribute('data-genre', content.genre ? content.genre.join(', ') : 'N/A');
-                card.onclick = () => navigateToDetail(content.id);
+                // The onclick attribute here calls the global navigateToDetail
+                card.onclick = () => window.navigateToDetail(content.id);
 
                 card.innerHTML = `
                     <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg">
@@ -110,7 +116,29 @@
                 `;
                 contentGrid.appendChild(card);
             });
-            filterContent(); // Re-apply filter after content loads
+            window.filterContent(); // Call global filterContent
+        };
+
+        // JavaScript for search/filter functionality (made global)
+        window.filterContent = () => {
+            const searchBar = document.getElementById('searchBar');
+            const filter = searchBar.value.toLowerCase();
+            const contentCards = document.querySelectorAll('.content-card');
+
+            contentCards.forEach(card => {
+                const title = card.getAttribute('data-title').toLowerCase();
+                const genre = card.getAttribute('data-genre').toLowerCase();
+                if (title.includes(filter) || genre.includes(filter)) {
+                    card.style.display = ''; // Show the card
+                } else {
+                    card.style.display = 'none'; // Hide the card
+                }
+            });
+        };
+
+        // Function to navigate to detail page (made global)
+        window.navigateToDetail = (contentId) => {
+            window.location.href = `detail.html?id=${contentId}`;
         };
     </script>
     <style>
@@ -168,7 +196,7 @@
                     </p>
                     <div class="flex space-x-4">
                         <!-- This button still opens the modal for the featured section, you can change it to navigate to a detail page if preferred -->
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200" onclick="navigateToDetail('sous_ecrous_example_id')">Regarder</button>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200" onclick="window.navigateToDetail('sous_ecrous_example_id')">Regarder</button>
                         <button class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200">Fiche</button>
                     </div>
                 </div>
@@ -176,7 +204,7 @@
 
             <!-- Search Bar -->
             <section class="p-8">
-                <input type="text" id="searchBar" onkeyup="filterContent()" placeholder="Rechercher films ou séries..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher films ou séries..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </section>
 
             <!-- "Vérifiez nos à" Section (Movies and Series) -->
@@ -197,29 +225,5 @@
             <p>Ce site présente uniquement des films et séries du domaine public.</p>
         </footer>
     </div>
-
-    <script type="module">
-        // JavaScript for search/filter functionality
-        function filterContent() {
-            const searchBar = document.getElementById('searchBar');
-            const filter = searchBar.value.toLowerCase();
-            const contentCards = document.querySelectorAll('.content-card');
-
-            contentCards.forEach(card => {
-                const title = card.getAttribute('data-title').toLowerCase();
-                const genre = card.getAttribute('data-genre').toLowerCase();
-                if (title.includes(filter) || genre.includes(filter)) {
-                    card.style.display = ''; // Show the card
-                } else {
-                    card.style.display = 'none'; // Hide the card
-                }
-            });
-        }
-
-        // Function to navigate to detail page
-        function navigateToDetail(contentId) {
-            window.location.href = `detail.html?id=${contentId}`;
-        }
-    </script>
 </body>
 </html>

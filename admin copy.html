@@ -8,203 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables for Firebase services
-        window.app = null;
-        window.db = null;
-        window.auth = null;
-        window.userId = null;
-        window.appId = null;
-
-        // Initialize Firebase and set up authentication
-        const initFirebase = async () => {
-            try {
-                // Mandatory app ID from Canvas environment
-                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                // Mandatory Firebase config from Canvas environment
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config is missing or empty. Please ensure __firebase_config is provided.");
-                    displayMessage("Erreur: Configuration Firebase manquante. La persistance des données ne fonctionnera pas.", 'error');
-                    return;
-                }
-
-                window.app = initializeApp(firebaseConfig);
-                window.db = getFirestore(window.app);
-                window.auth = getAuth(window.app);
-
-                // Authenticate user
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(window.auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
-
-                // Listen for auth state changes
-                onAuthStateChanged(window.auth, (user) => {
-                    if (user) {
-                        window.userId = user.uid;
-                        console.log("Utilisateur authentifié:", window.userId);
-                        displayMessage(`Connecté en tant que: ${window.userId.substring(0, 8)}...`, 'success');
-                        document.getElementById('loggedInUser').textContent = `Bonjour, ${window.userId.substring(0, 8)}...`;
-                        // Start listening to content changes only after auth is ready
-                        setupContentListener();
-                    } else {
-                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users, for public data access
-                        console.log("Utilisateur anonyme ou déconnecté. ID généré:", window.userId);
-                        displayMessage("Connecté en mode anonyme.", 'info');
-                        document.getElementById('loggedInUser').textContent = `Bonjour, Anonyme (${window.userId.substring(0, 8)}...)`;
-                        // Still set up listener, but it will access public data if rules allow
-                        setupContentListener();
-                    }
-                });
-            } catch (error) {
-                console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
-                displayMessage(`Erreur Firebase: ${error.message}`, 'error');
-            }
-        };
-
-        // Initialize Firebase when the window loads
-        window.addEventListener('load', initFirebase);
-
-        // Function to set up real-time content listener
-        window.setupContentListener = () => {
-            if (!window.db || !window.userId || !window.appId) {
-                console.warn("Firestore, userId, or appId not ready for content listener setup.");
-                return;
-            }
-
-            // Path for private user data: /artifacts/{appId}/users/{userId}/{your_collection_name}
-            const contentCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/films_series`);
-            // Note: orderBy is commented out as per instructions due to potential index issues
-            const q = query(contentCollectionRef); // , orderBy("createdAt", "desc")
-
-            onSnapshot(q, (snapshot) => {
-                const contentList = [];
-                snapshot.forEach((doc) => {
-                    contentList.push({ id: doc.id, ...doc.data() });
-                });
-                displayContent(contentList);
-            }, (error) => {
-                console.error("Erreur lors de la récupération des contenus:", error);
-                displayMessage(`Erreur de synchronisation des contenus: ${error.message}`, 'error');
-            });
-        };
-
-        // Function to display content in the table
-        window.displayContent = (contents) => {
-            const tbody = document.getElementById('contentTableBody');
-            tbody.innerHTML = ''; // Clear existing rows
-
-            if (contents.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-gray-500">
-                    Aucun film ou série ajouté pour le moment.
-                </td></tr>`;
-                return;
-            }
-
-            contents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort by creation time if available
-
-            contents.forEach(content => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-700 last:border-b-0';
-                row.innerHTML = `
-                    <td class="py-3 px-4 truncate max-w-[100px]">${content.id}</td>
-                    <td class="py-3 px-4">${content.title}</td>
-                    <td class="py-3 px-4">${content.genre || 'N/A'}</td>
-                    <td class="py-3 px-4">
-                        <button class="text-blue-400 hover:text-blue-300" onclick="editContent('${content.id}')">Modifier</button>
-                        <button class="text-red-400 hover:text-red-300 ml-2" onclick="deleteContent('${content.id}')">Supprimer</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        };
-
-        // Function to add new content to Firestore
-        window.addContentToFirestore = async (contentData) => {
-            if (!window.db || !window.userId || !window.appId) {
-                displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
-                return;
-            }
-            try {
-                // Ensure unique ID if not coming from TMDB ID directly
-                const docRef = await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/films_series`), {
-                    ...contentData,
-                    createdAt: Date.now() // Add timestamp for sorting
-                });
-                console.log("Document écrit avec ID: ", docRef.id);
-                displayMessage("Film/Série ajouté avec succès !", 'success');
-                closeAddModal();
-            } catch (e) {
-                console.error("Erreur lors de l'ajout du document: ", e);
-                displayMessage(`Erreur lors de l'ajout: ${e.message}`, 'error');
-            }
-        };
-
-        // Placeholder for edit functionality
-        window.editContent = (contentId) => {
-            displayMessage(`Fonctionnalité "Modifier" pour l'ID ${contentId} n'est pas encore implémentée.`, 'info');
-        };
-
-        // Function to delete content from Firestore
-        window.deleteContent = async (contentId) => {
-            if (!window.db || !window.userId || !window.appId) {
-                displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
-                return;
-            }
-            // Implement a custom confirmation dialog instead of alert/confirm
-            showCustomConfirm('Êtes-vous sûr de vouloir supprimer ce contenu ?', async () => {
-                try {
-                    await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/films_series`, contentId));
-                    displayMessage("Contenu supprimé avec succès !", 'success');
-                } catch (e) {
-                    console.error("Erreur lors de la suppression du document: ", e);
-                    displayMessage(`Erreur lors de la suppression: ${e.message}`, 'error');
-                }
-            });
-        };
-
-        // Custom message/notification box
-        window.displayMessage = (message, type = 'info') => {
-            const messageBox = document.getElementById('messageBox');
-            messageBox.textContent = message;
-            messageBox.className = 'fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300';
-            if (type === 'success') {
-                messageBox.classList.add('bg-green-600', 'text-white');
-            } else if (type === 'error') {
-                messageBox.classList.add('bg-red-600', 'text-white');
-            } else {
-                messageBox.classList.add('bg-blue-600', 'text-white');
-            }
-            messageBox.style.opacity = '1';
-            setTimeout(() => {
-                messageBox.style.opacity = '0';
-            }, 3000);
-        };
-
-        // Custom confirmation dialog
-        window.showCustomConfirm = (message, onConfirm) => {
-            const confirmModal = document.getElementById('customConfirmModal');
-            document.getElementById('customConfirmMessage').textContent = message;
-            confirmModal.style.display = 'flex';
-
-            document.getElementById('confirmYes').onclick = () => {
-                onConfirm();
-                confirmModal.style.display = 'none';
-            };
-            document.getElementById('confirmNo').onclick = () => {
-                confirmModal.style.display = 'none';
-            };
-        };
-
-    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -271,6 +74,22 @@
     </style>
 </head>
 <body class="flex min-h-screen">
+
+    <!-- Message Box (Moved here to be loaded early) -->
+    <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300" style="opacity: 0;"></div>
+
+    <!-- Custom Confirmation Modal (Moved here to be loaded early) -->
+    <div id="customConfirmModal" class="modal">
+        <div class="modal-content max-w-sm text-center">
+            <h2 class="text-xl font-bold mb-4">Confirmation</h2>
+            <p id="customConfirmMessage" class="mb-6">Êtes-vous sûr ?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirmNo" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Annuler</button>
+                <button id="confirmYes" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
         <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">Nightflix</div>
@@ -326,7 +145,7 @@
             <section class="card p-6 rounded-lg shadow-md">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">Tous les films</h2>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="openAddModal()">Ajouter un film / série</button>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-left">
@@ -352,26 +171,10 @@
         </main>
     </div>
 
-    <!-- Message Box -->
-    <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300" style="opacity: 0;"></div>
-
-    <!-- Custom Confirmation Modal -->
-    <div id="customConfirmModal" class="modal">
-        <div class="modal-content max-w-sm text-center">
-            <h2 class="text-xl font-bold mb-4">Confirmation</h2>
-            <p id="customConfirmMessage" class="mb-6">Êtes-vous sûr ?</p>
-            <div class="flex justify-center space-x-4">
-                <button id="confirmNo" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Annuler</button>
-                <button id="confirmYes" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Confirmer</button>
-            </div>
-        </div>
-    </div>
-
-
     <!-- Add Film/Series Modal -->
     <div id="addMovieModal" class="modal">
         <div class="modal-content">
-            <span class="close-button" onclick="closeAddModal()">&times;</span>
+            <span class="close-button" onclick="window.closeAddModal()">&times;</span>
             <h2 class="text-2xl font-bold mb-6 text-white">Ajouter un film / série</h2>
 
             <!-- TMDB Search Section -->
@@ -379,7 +182,7 @@
                 <label for="tmdbSearchInput" class="block text-gray-400 text-sm font-bold mb-2">Rechercher sur TMDB :</label>
                 <div class="flex space-x-2">
                     <input type="text" id="tmdbSearchInput" class="flex-grow p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Entrez le titre du film ou de la série">
-                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors" onclick="searchTmdb()">Rechercher</button>
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors" onclick="window.searchTmdb()">Rechercher</button>
                 </div>
                 <div id="tmdbSearchResults" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-80 overflow-y-auto">
                     <!-- TMDB search results will be loaded here -->
@@ -413,7 +216,7 @@
                     </select>
                 </div>
                 <div class="flex justify-end space-x-4">
-                    <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="closeAddModal()">Annuler</button>
+                    <button type="button" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors" onclick="window.closeAddModal()">Annuler</button>
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors">Ajouter</button>
                 </div>
             </form>
@@ -422,10 +225,200 @@
 
     <script type="module">
         // Import statements are at the top due to type="module"
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
+            authDomain: "stream-df8b9.firebaseapp.com",
+            projectId: "stream-df8b9",
+            storageBucket: "stream-df8b9.firebasestorage.app",
+            messagingSenderId: "488904493156",
+            appId: "1:488904493156:web:9b468948bc244b9a78f771",
+            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
+        };
+
+        // Global variables for Firebase services
+        window.app = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null; // userId will be set by Firebase Auth
+
+        // Initialize Firebase and set up authentication
+        const initFirebase = async () => {
+            try {
+                window.app = initializeApp(firebaseConfig);
+                window.db = getFirestore(window.app);
+                window.auth = getAuth(window.app);
+                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
+
+                // Authenticate user anonymously. For admin, you might want a more robust auth.
+                await signInAnonymously(window.auth);
+
+                // Listen for auth state changes
+                onAuthStateChanged(window.auth, (user) => {
+                    if (user) {
+                        window.userId = user.uid;
+                        console.log("Utilisateur authentifié:", window.userId);
+                        window.displayMessage(`Connecté en tant que: ${window.userId.substring(0, 8)}...`, 'success');
+                        document.getElementById('loggedInUser').textContent = `Bonjour, ${window.userId.substring(0, 8)}...`;
+                        // Start listening to content changes only after auth is ready
+                        window.setupContentListener();
+                    } else {
+                        // This case should ideally not happen for an admin panel if robust auth is enforced
+                        window.userId = crypto.randomUUID(); // Fallback ID if no user is signed in
+                        console.log("Utilisateur anonyme ou déconnecté. ID généré:", window.userId);
+                        window.displayMessage("Connecté en mode anonyme (accès restreint possible).", 'info');
+                        document.getElementById('loggedInUser').textContent = `Bonjour, Anonyme (${window.userId.substring(0, 8)}...)`;
+                        window.setupContentListener(); // Attempt to load content even if anonymous
+                    }
+                });
+            } catch (error) {
+                console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
+                window.displayMessage(`Erreur Firebase: ${error.message}`, 'error');
+            }
+        };
+
+        // Initialize Firebase when the window loads
+        window.addEventListener('load', initFirebase);
+
+        // Function to set up real-time content listener (made global)
+        window.setupContentListener = () => {
+            if (!window.db || !window.userId) {
+                console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
+                return;
+            }
+
+            // Path for user-specific data (recommended for admin panel)
+            const contentCollectionRef = collection(window.db, `users/${window.userId}/films_series`);
+            // If you want all admins to see/edit the SAME content, use a global collection path:
+            // const contentCollectionRef = collection(window.db, `all_films_series`);
+
+            const q = query(contentCollectionRef);
+
+            onSnapshot(q, (snapshot) => {
+                const contentList = [];
+                snapshot.forEach((doc) => {
+                    contentList.push({ id: doc.id, ...doc.data() });
+                });
+                window.displayContent(contentList); // Call global displayContent
+            }, (error) => {
+                console.error("Erreur lors de la récupération des contenus:", error);
+                window.displayMessage(`Erreur de synchronisation des contenus: ${error.message}`, 'error');
+            });
+        };
+
+        // Function to display content in the table (made global)
+        window.displayContent = (contents) => {
+            const tbody = document.getElementById('contentTableBody');
+            tbody.innerHTML = ''; // Clear existing rows
+
+            if (contents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-gray-500">
+                    Aucun film ou série ajouté pour le moment.
+                </td></tr>`;
+                return;
+            }
+
+            contents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort by creation time if available
+
+            contents.forEach(content => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 last:border-b-0';
+                row.innerHTML = `
+                    <td class="py-3 px-4 truncate max-w-[100px]">${content.id}</td>
+                    <td class="py-3 px-4">${content.title}</td>
+                    <td class="py-3 px-4">${content.genre ? content.genre.join(', ') : 'N/A'}</td>
+                    <td class="py-3 px-4">
+                        <button class="text-blue-400 hover:text-blue-300" onclick="window.editContent('${content.id}')">Modifier</button>
+                        <button class="text-red-400 hover:text-red-300 ml-2" onclick="window.deleteContent('${content.id}')">Supprimer</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        };
+
+        // Function to add new content to Firestore (made global)
+        window.addContentToFirestore = async (contentData) => {
+            if (!window.db || !window.userId) {
+                window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
+                return;
+            }
+            try {
+                const docRef = await addDoc(collection(window.db, `users/${window.userId}/films_series`), {
+                    ...contentData,
+                    createdAt: Date.now() // Add timestamp for sorting
+                });
+                console.log("Document écrit avec ID: ", docRef.id);
+                window.displayMessage("Film/Série ajouté avec succès !", 'success');
+                window.closeAddModal(); // Call global closeAddModal
+            } catch (e) {
+                console.error("Erreur lors de l'ajout du document: ", e);
+                window.displayMessage(`Erreur lors de l'ajout: ${e.message}`, 'error');
+            }
+        };
+
+        // Placeholder for edit functionality (made global)
+        window.editContent = (contentId) => {
+            window.displayMessage(`Fonctionnalité "Modifier" pour l'ID ${contentId} n'est pas encore implémentée.`, 'info');
+        };
+
+        // Function to delete content from Firestore (made global)
+        window.deleteContent = async (contentId) => {
+            if (!window.db || !window.userId) {
+                window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
+                return;
+            }
+            window.showCustomConfirm('Êtes-vous sûr de vouloir supprimer ce contenu ?', async () => {
+                try {
+                    await deleteDoc(doc(window.db, `users/${window.userId}/films_series`, contentId));
+                    window.displayMessage("Contenu supprimé avec succès !", 'success');
+                } catch (e) {
+                    console.error("Erreur lors de la suppression du document: ", e);
+                    window.displayMessage(`Erreur lors de la suppression: ${e.message}`, 'error');
+                }
+            });
+        };
+
+        // Custom message/notification box (made global)
+        window.displayMessage = (message, type = 'info') => {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = 'fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+            if (type === 'success') {
+                messageBox.classList.add('bg-green-600', 'text-white');
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-600', 'text-white');
+            } else {
+                messageBox.classList.add('bg-blue-600', 'text-white');
+            }
+            messageBox.style.opacity = '1';
+            setTimeout(() => {
+                messageBox.style.opacity = '0';
+            }, 3000);
+        };
+
+        // Custom confirmation dialog (made global)
+        window.showCustomConfirm = (message, onConfirm) => {
+            const confirmModal = document.getElementById('customConfirmModal');
+            document.getElementById('customConfirmMessage').textContent = message;
+            confirmModal.style.display = 'flex';
+
+            document.getElementById('confirmYes').onclick = () => {
+                onConfirm();
+                confirmModal.style.display = 'none';
+            };
+            document.getElementById('confirmNo').onclick = () => {
+                confirmModal.style.display = 'none';
+            };
+        };
 
         // *** REMPLACER 'VOTRE_CLE_API_TMDB' PAR VOTRE VÉRITABLE CLÉ API TMDB ***
         // Vous pouvez obtenir une clé API ici : https://www.themoviedb.org/documentation/api
-        const TMDB_API_KEY = 'VOTRE_CLE_API_TMDB';
+        const TMDB_API_KEY = '313671f6e4dcbb4c2d9cb7f561c7ee25';
         const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
         const TMDB_POSTER_FALLBACK = 'https://placehold.co/200x300/333/EEE?text=Pas+d\'affiche';
 
@@ -440,31 +433,34 @@
         const contentType = document.getElementById('contentType'); // New select element
         const addContentForm = document.getElementById('addContentForm');
 
-        function openAddModal() {
+        // Made openAddModal global
+        window.openAddModal = () => {
             addMovieModal.style.display = 'flex';
             // Clear previous search results and form fields
             tmdbSearchResults.innerHTML = '';
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
-        }
+        };
 
-        function closeAddModal() {
+        // Made closeAddModal global
+        window.closeAddModal = () => {
             addMovieModal.style.display = 'none';
-        }
+        };
 
         // Close the modal if user clicks outside of it
         window.onclick = function(event) {
             if (event.target == addMovieModal) {
-                closeAddModal();
+                window.closeAddModal(); // Call global closeAddModal
             }
             // Also close custom confirm modal if clicked outside
             const customConfirmModal = document.getElementById('customConfirmModal');
             if (event.target == customConfirmModal) {
                 customConfirmModal.style.display = 'none';
             }
-        }
+        };
 
-        async function searchTmdb() {
+        // Made searchTmdb global
+        window.searchTmdb = async () => {
             const query = tmdbSearchInput.value.trim();
             if (!query) {
                 tmdbSearchResults.innerHTML = '';
@@ -512,7 +508,7 @@
                             <h4 class="font-semibold text-white text-md truncate mb-1">${title}</h4>
                             <p class="text-gray-400 text-xs">${type} (${releaseDate.split('-')[0]})</p>
                         `;
-                        card.onclick = () => selectTmdbResult(title, description, posterPath, type, id, genreIds);
+                        card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds); // Call global selectTmdbResult
                         tmdbSearchResults.appendChild(card);
                     });
                 }
@@ -521,25 +517,26 @@
                 tmdbSearchResults.innerHTML = '<p class="col-span-full text-red-400 text-center">Erreur lors de la récupération des données TMDB. Vérifiez votre clé API.</p>';
                 noTmdbResults.classList.add('hidden');
             }
-        }
+        };
 
-        async function selectTmdbResult(title, description, posterPath, type, tmdbId, genreIds) {
+        // Made selectTmdbResult global
+        window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
             contentType.value = type.toLowerCase().includes('film') ? 'film' : 'serie'; // Set type based on TMDB result
 
             // Fetch full genre names from TMDB API if needed
-            const genreNames = await getGenreNames(genreIds, type === 'Film' ? 'movie' : 'tv');
+            const genreNames = await window.getGenreNames(genreIds, type === 'Film' ? 'movie' : 'tv'); // Call global getGenreNames
             contentDescription.value = `${description}\n\nGenres: ${genreNames.join(', ')}`;
 
 
             tmdbSearchResults.innerHTML = ''; // Clear search results after selection
             noTmdbResults.classList.add('hidden'); // Hide "no results" message
-        }
+        };
 
-        // Helper to get genre names (requires another TMDB API call for genre list)
-        async function getGenreNames(genreIds, mediaType) {
+        // Helper to get genre names (requires another TMDB API call for genre list) (made global)
+        window.getGenreNames = async (genreIds, mediaType) => {
             if (genreIds.length === 0) return [];
             if (TMDB_API_KEY === 'VOTRE_CLE_API_TMDB' || TMDB_API_KEY === '') {
                  console.warn("Clé API TMDB manquante pour les genres.");
@@ -557,7 +554,7 @@
                 console.error('Erreur lors de la récupération des genres TMDB :', error);
                 return [];
             }
-        }
+        };
 
 
         addContentForm.addEventListener('submit', async (e) => {
@@ -571,7 +568,7 @@
                 genre: contentDescription.value.split('Genres: ')[1] ? contentDescription.value.split('Genres: ')[1].split(', ') : [] // Simple genre extraction
             };
 
-            await addContentToFirestore(newContent);
+            await window.addContentToFirestore(newContent); // Call global addContentToFirestore
         });
     </script>
 </body>
