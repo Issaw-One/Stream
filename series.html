@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PafStreaming - Séries</title>
+    <title>Nightflix - Séries</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Firebase SDKs -->
@@ -63,7 +63,7 @@
                 return;
             }
 
-            const contentCollectionRef = collection(window.db, `all_films_series`);
+            const contentCollectionRef = collection(window.db, `all_films_series`); // MODIFIED HERE
             // Filter by type 'serie'
             const q = query(contentCollectionRef, where('type', '==', 'serie'));
 
@@ -166,7 +166,7 @@
         <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
-                <span class="text-2xl font-bold text-white uppercase tracking-wider">PafStreaming</span>
+                <span class="text-2xl font-bold text-white uppercase tracking-wider">Nightflix</span>
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a href="index.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
@@ -212,8 +212,8 @@
 
         <!-- Footer (optional) -->
         <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
-            <p>&copy; 2025 Paf Streaming. Tous droits réservés.</p>
-            <p>Ce site n'héberge auccun films et séries sur ces serveur.</p>
+            <p>&copy; 2025 Nightflix. Tous droits réservés.</p>
+            <p>Ce site présente uniquement des films et séries du domaine public.</p>
         </footer>
     </div>
 </body>

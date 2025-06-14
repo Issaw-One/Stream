@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paf Streaming - Films et Séries Gratuit</title>
+    <title>Nightflix - Films et Séries Libre de Droit</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Firebase SDKs -->
@@ -66,13 +66,8 @@
                 return;
             }
 
-            // Path for user-specific data (assuming content added via admin is private)
-            // Be careful with this path: `users/${window.userId}/films_series`
-            // If you want content to be visible to ALL users (even anonymous visitors),
-            // you should store it in a public collection, e.g., `all_films_series`.
-            // For now, it will show content added by the currently signed-in (possibly anonymous) user.
-           const contentCollectionRef = collection(window.db, `all_films_series`);
-            // For the main page, we display all content without type filter.
+            // Path for ALL public data
+            const contentCollectionRef = collection(window.db, `all_films_series`); // MODIFIED HERE
             const q = query(contentCollectionRef);
 
             onSnapshot(q, (snapshot) => {
@@ -174,14 +169,14 @@
         <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
-                <span class="text-2xl font-bold text-white uppercase tracking-wider">Paf Streaming</span>
+                <span class="text-2xl font-bold text-white uppercase tracking-wider">Nightflix</span>
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a href="index.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Accueil</a>
                 <a href="films.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="series.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
-                <!--<a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>-->
+                <a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>
             </nav>
             <div class="flex items-center space-x-4">
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">TELEGRAM</button>
@@ -191,7 +186,7 @@
 
         <!-- Main Section / Hero Section -->
         <main class="flex-grow pt-20"> <!-- Added padding-top to avoid overlap with fixed header -->
-            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://media.senscritique.com/media/000022694637/0/sous_ecrous.jpg');">
+            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://placehold.co/1200x500/000000/FFFFFF?text=Image+de+film+ou+série');">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
                 <div class="z-0">
                     <h1 class="text-5xl font-bold mb-4">Sous écrous</h1>
@@ -200,7 +195,7 @@
                     </p>
                     <div class="flex space-x-4" id="heroPlayButtonContainer">
                         <!-- Example button, will navigate to a detail page by content ID -->
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200" onclick="window.navigateToDetail('80sM8UDnMqZql6VJnyIX')">Regarder</button>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200" onclick="window.navigateToDetail('sous_ecrous_example_id')">Regarder</button>
                         <button class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200">Fiche</button>
                     </div>
                 </div>
@@ -225,8 +220,8 @@
 
         <!-- Footer (optional) -->
         <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
-            <p>&copy; 2025 Paf Streaming. Tous droits réservés.</p>
-            <p>Ce site n'héberge auccun films et séries sur ces serveur.</p>
+            <p>&copy; 2025 Nightflix. Tous droits réservés.</p>
+            <p>Ce site présente uniquement des films et séries du domaine public.</p>
         </footer>
     </div>
 </body>
