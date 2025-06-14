@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="detailPageTitle">Détails - Nightflix</title>
+    <title id="detailPageTitle">Détails - PafStreaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Firebase SDKs -->
@@ -124,7 +124,7 @@
 
                 if (contentSnap.exists()) {
                     const data = contentSnap.data();
-                    document.getElementById('detailPageTitle').textContent = data.title + ' - Nightflix';
+                    document.getElementById('detailPageTitle').textContent = data.title + ' - PafStreaming';
                     contentTitleElem.textContent = data.title;
                     contentDescriptionElem.textContent = data.description;
                     heroDetailSection.style.backgroundImage = `url('${data.posterUrl || 'https://placehold.co/1200x500/000000/FFFFFF?text=Affiche+Manquante'}')`;
@@ -194,7 +194,7 @@
 
         // Made displayNotFound global
         window.displayNotFound = () => {
-            document.getElementById('detailPageTitle').textContent = 'Contenu non trouvé - Nightflix';
+            document.getElementById('detailPageTitle').textContent = 'Contenu non trouvé - PafStreaming';
             document.getElementById('contentTitle').textContent = 'Contenu non trouvé';
             document.getElementById('contentDescription').textContent = 'Désolé, le film ou la série que vous recherchez n\'a pas pu être trouvé.';
             document.getElementById('playerContainer').innerHTML = '<p class="text-gray-400 text-center py-10">Contenu non disponible.</p>';
@@ -244,7 +244,7 @@
         <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
-                <span class="text-2xl font-bold text-white uppercase tracking-wider">Nightflix</span>
+                <span class="text-2xl font-bold text-white uppercase tracking-wider">PafStreaming</span>
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a href="index.html" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
@@ -307,8 +307,8 @@
 
         <!-- Footer (optional) -->
         <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
-            <p>&copy; 2025 Nightflix. Tous droits réservés.</p>
-            <p>Ce site présente uniquement des films et séries du domaine public.</p>
+            <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
+            <p>Ce site n'héberge auccun films et séries.</p>
         </footer>
     </div>
 </body>
