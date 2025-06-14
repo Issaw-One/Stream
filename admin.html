@@ -94,16 +94,16 @@
     <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
         <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">PafSStreaming</div>
         <nav class="w-full">
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2" onclick="window.filterContent('all', this)">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2" id="dashboardBtn" onclick="window.filterContent('all', this)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l-7 7m7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 <span>Tableau de bord</span>
             </a>
             <div class="text-gray-400 uppercase text-xs font-semibold mt-6 mb-2 ml-3">Contenu</div>
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2" onclick="window.filterContent('film', this)">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2" id="filmsBtn" onclick="window.filterContent('film', this)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h18M3 16h18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 <span>Films</span>
             </a>
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2" onclick="window.filterContent('serie', this)">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2" id="seriesBtn" onclick="window.filterContent('serie', this)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 4l-4 4 4 4"/></svg>
                 <span>Séries</span>
             </a>
@@ -112,7 +112,7 @@
 
     <div class="flex-grow flex flex-col">
         <header class="header p-6 flex justify-between items-center shadow-lg">
-            <h1 class="text-3xl font-bold text-white">Tableau de bord</h1>
+            <h1 class="text-3xl font-bold text-white" id="mainDashboardTitle">Tableau de bord</h1>
             <div class="flex items-center space-x-4">
                 <span id="loggedInUser" class="text-gray-300">Chargement...</span>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors">Déconnexion</button>
@@ -140,7 +140,7 @@
 
             <section class="card p-6 rounded-lg shadow-md">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold">Tous les films</h2>
+                    <h2 class="text-xl font-semibold" id="contentTableTitle">Tous les films</h2>
                     <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
                 </div>
                 <div class="overflow-x-auto">
@@ -306,8 +306,7 @@
         window.db = null;
         window.auth = null;
         window.userId = null; // userId will be set by Firebase Auth
-        window.fullContentList = []; // Stores all content from Firestore
-        window.currentFilterType = 'all'; // Default filter type
+        window.allContents = []; // Store all fetched contents globally
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
@@ -364,44 +363,29 @@
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
-                window.fullContentList = contentList; // Store all fetched content
-                window.applyFilterAndDisplay(window.currentFilterType); // Apply current filter and display
+                window.allContents = contentList; // Store all fetched contents
+                window.displayContent(window.allContents); // Display all by default
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
                 window.displayMessage(`Erreur de synchronisation des contenus: ${error.message}`, 'error');
             });
         };
 
-        // New function to apply filter and display content
-        window.applyFilterAndDisplay = (filterType) => {
-            window.currentFilterType = filterType;
-            let filteredContents = [];
-
-            if (filterType === 'all') {
-                filteredContents = window.fullContentList;
-            } else {
-                filteredContents = window.fullContentList.filter(content => content.type === filterType);
-            }
-
-            window.displayContent(filteredContents); // Call global displayContent
-            window.updateSidebarActiveState(); // Update active state of sidebar links
-        };
-
         // Function to display content in the table (made global)
-        window.displayContent = (contents) => {
+        window.displayContent = (contentsToDisplay) => {
             const tbody = document.getElementById('contentTableBody');
             tbody.innerHTML = ''; // Clear existing rows
 
-            if (contents.length === 0) {
+            if (contentsToDisplay.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-gray-500">
-                    Aucun film ou série ajouté pour le moment.
+                    Aucun film ou série à afficher pour le moment.
                 </td></tr>`;
                 return;
             }
 
-            contents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort by creation time if available
+            contentsToDisplay.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort by creation time if available
 
-            contents.forEach(content => {
+            contentsToDisplay.forEach(content => {
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700 last:border-b-0';
                 let genreText = content.genre && Array.isArray(content.genre) ? content.genre.join(', ') : 'N/A';
@@ -422,36 +406,45 @@
             });
         };
 
-        // Function to filter content and update active state of sidebar (made global)
-        window.filterContent = (type, element = null) => {
-            window.currentFilterType = type;
-            window.applyFilterAndDisplay(type);
-            // Optionally update URL or local storage to persist filter choice
-        };
+        // Function to filter content by type (new global function)
+        window.filterContent = (type, clickedElement) => {
+            const mainDashboardTitle = document.getElementById('mainDashboardTitle');
+            const contentTableTitle = document.getElementById('contentTableTitle');
+            const sidebarButtons = document.querySelectorAll('.sidebar nav a');
 
-        // Function to update sidebar active class
-        window.updateSidebarActiveState = () => {
-            const sidebarLinks = document.querySelectorAll('.sidebar nav a');
-            sidebarLinks.forEach(link => {
-                link.classList.remove('bg-blue-700', 'text-white', 'font-semibold');
-                link.classList.add('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+            // Reset active state for all sidebar buttons
+            sidebarButtons.forEach(btn => {
+                btn.classList.remove('bg-blue-700', 'text-white');
+                btn.classList.add('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
             });
 
-            // Find the link corresponding to the current filter and apply active styling
-            let activeLink;
-            if (window.currentFilterType === 'all') {
-                activeLink = document.querySelector('.sidebar nav a[onclick*="all"]');
-            } else if (window.currentFilterType === 'film') {
-                activeLink = document.querySelector('.sidebar nav a[onclick*="film"]');
-            } else if (window.currentFilterType === 'serie') {
-                activeLink = document.querySelector('.sidebar nav a[onclick*="serie"]');
-            }
+            // Set active state for the clicked button
+            clickedElement.classList.add('bg-blue-700', 'text-white');
+            clickedElement.classList.remove('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
 
-            if (activeLink) {
-                activeLink.classList.add('bg-blue-700', 'text-white', 'font-semibold');
-                activeLink.classList.remove('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+
+            let filteredContents = [];
+            let dashboardTitle = 'Tableau de bord';
+            let tableTitle = 'Tous les films';
+
+            if (type === 'all') {
+                filteredContents = window.allContents;
+                dashboardTitle = 'Tableau de bord';
+                tableTitle = 'Tous les films'; // Default table title
+            } else if (type === 'film') {
+                filteredContents = window.allContents.filter(content => content.type === 'film');
+                dashboardTitle = 'Films';
+                tableTitle = 'Tous les films';
+            } else if (type === 'serie') {
+                filteredContents = window.allContents.filter(content => content.type === 'serie');
+                dashboardTitle = 'Séries';
+                tableTitle = 'Toutes les séries';
             }
+            mainDashboardTitle.textContent = dashboardTitle;
+            contentTableTitle.textContent = tableTitle;
+            window.displayContent(filteredContents);
         };
+
 
         // Function to add new content to Firestore (made global)
         window.addContentToFirestore = async (contentData) => {
@@ -703,7 +696,7 @@
 
                 if (combinedResults.length === 0) {
                     tmdbSearchResults.innerHTML = '';
-                    noTmdbResults.classList.remove('hidden');
+                    noTmdbResults.classList.add('hidden');
                 } else {
                     tmdbSearchResults.innerHTML = '';
                     combinedResults.forEach(result => {
@@ -987,7 +980,9 @@
         // Initial call to set correct field visibility on page load for the add form
         window.addEventListener('DOMContentLoaded', () => {
             window.toggleSeriesFields('add');
-            window.updateSidebarActiveState(); // Set initial active state for sidebar
+            // Initial call to filter to 'all' and set dashboard button as active
+            const dashboardBtn = document.getElementById('dashboardBtn');
+            window.filterContent('all', dashboardBtn);
         });
     </script>
 </body>
