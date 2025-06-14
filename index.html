@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nightflix - Films et Séries Libre de Droit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase services
+        window.app = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null;
+        window.appId = null;
+
+        // Initialize Firebase and set up authentication
+        const initFirebase = async () => {
+            try {
+                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config is missing or empty. Data persistence will not work.");
+                    return;
+                }
+
+                window.app = initializeApp(firebaseConfig);
+                window.db = getFirestore(window.app);
+                window.auth = getAuth(window.app);
+
+                // Authenticate user anonymously for public access
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(window.auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+
+                onAuthStateChanged(window.auth, (user) => {
+                    if (user) {
+                        window.userId = user.uid;
+                        console.log("Utilisateur authentifié pour le frontend:", window.userId);
+                        setupContentListener();
+                    } else {
+                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users, if public data rules are in place
+                        console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
+                        setupContentListener();
+                    }
+                });
+            } catch (error) {
+                console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
+            }
+        };
+
+        window.addEventListener('load', initFirebase);
+
+        // Function to set up real-time content listener for the main page
+        window.setupContentListener = () => {
+            if (!window.db || !window.userId || !window.appId) {
+                console.warn("Firestore, userId, or appId not ready for content listener setup.");
+                return;
+            }
+
+            // Path for private user data (assuming the content added via admin is private)
+            const contentCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/films_series`);
+            // const contentCollectionRef = collection(window.db, `artifacts/${window.appId}/public/data/films_series`); // Use this if content is public
+
+            const q = query(contentCollectionRef); // orderBy("createdAt", "desc") - commented out due to instructions
+
+            onSnapshot(q, (snapshot) => {
+                const contentList = [];
+                snapshot.forEach((doc) => {
+                    contentList.push({ id: doc.id, ...doc.data() });
+                });
+                displayContentCards(contentList);
+            }, (error) => {
+                console.error("Erreur lors de la récupération des contenus:", error);
+            });
+        };
+
+        // Function to display content cards
+        window.displayContentCards = (contents) => {
+            const contentGrid = document.getElementById('contentGrid');
+            contentGrid.innerHTML = ''; // Clear existing cards
+
+            if (contents.length === 0) {
+                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun film ou série disponible pour le moment.</p>`;
+                return;
+            }
+
+            contents.forEach(content => {
+                const card = document.createElement('div');
+                card.className = 'content-card bg-card rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer';
+                card.setAttribute('data-id', content.id);
+                card.setAttribute('data-title', content.title);
+                card.setAttribute('data-genre', content.genre ? content.genre.join(', ') : 'N/A');
+                card.onclick = () => navigateToDetail(content.id);
+
+                card.innerHTML = `
+                    <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-white truncate">${content.title}</h3>
+                        <p class="text-gray-400 text-sm">${content.genre ? content.genre.join(', ') : 'N/A'}</p>
+                    </div>
+                `;
+                contentGrid.appendChild(card);
+            });
+            filterContent(); // Re-apply filter after content loads
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background color */
+            color: #e2e8f0; /* Light text color */
+        }
+        .text-neon-blue {
+            color: #4dc0b5; /* A color resembling neon blue */
+        }
+        .bg-card {
+            background-color: #2d3748; /* Background color for cards */
+        }
+        .gradient-overlay {
+            background: linear-gradient(to top, rgba(26,32,44,0.9) 0%, rgba(26,32,44,0) 50%);
+        }
+        /* Hide scrollbar for the movie/series carousel */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation Header -->
+        <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
+            <div class="flex items-center space-x-4">
+                <span class="text-2xl font-bold text-white uppercase tracking-wider">Nightflix</span>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
+                <a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">TELEGRAM</button>
+                <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
+            </div>
+        </header>
+
+        <!-- Main Section / Hero Section -->
+        <main class="flex-grow pt-20"> <!-- Added padding-top to avoid overlap with fixed header -->
+            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://placehold.co/1200x500/000000/FFFFFF?text=Image+de+film+ou+série');">
+                <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
+                <div class="z-0">
+                    <h1 class="text-5xl font-bold mb-4">Sous écrous</h1>
+                    <p class="text-lg text-gray-300 max-w-xl mb-6">
+                        Exclusivité écrous, Sammy est piégé et calé à la place d'un autre prisonnier. Il doit faire face à une bande à bout, orchestrée pour le faire porter le chapeau.
+                    </p>
+                    <div class="flex space-x-4">
+                        <!-- This button still opens the modal for the featured section, you can change it to navigate to a detail page if preferred -->
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200" onclick="navigateToDetail('sous_ecrous_example_id')">Regarder</button>
+                        <button class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200">Fiche</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Bar -->
+            <section class="p-8">
+                <input type="text" id="searchBar" onkeyup="filterContent()" placeholder="Rechercher films ou séries..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </section>
+
+            <!-- "Vérifiez nos à" Section (Movies and Series) -->
+            <section class="p-8">
+                <h2 class="text-3xl font-bold mb-6 text-white">Vérifiez nos à</h2>
+                <div class="relative">
+                    <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
+                        <!-- Content will be dynamically loaded here by Firestore listener -->
+                        <p class="col-span-full text-center text-gray-500">Chargement des films et séries...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer (optional) -->
+        <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
+            <p>&copy; 2025 Nightflix. Tous droits réservés.</p>
+            <p>Ce site présente uniquement des films et séries du domaine public.</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        // JavaScript for search/filter functionality
+        function filterContent() {
+            const searchBar = document.getElementById('searchBar');
+            const filter = searchBar.value.toLowerCase();
+            const contentCards = document.querySelectorAll('.content-card');
+
+            contentCards.forEach(card => {
+                const title = card.getAttribute('data-title').toLowerCase();
+                const genre = card.getAttribute('data-genre').toLowerCase();
+                if (title.includes(filter) || genre.includes(filter)) {
+                    card.style.display = ''; // Show the card
+                } else {
+                    card.style.display = 'none'; // Hide the card
+                }
+            });
+        }
+
+        // Function to navigate to detail page
+        function navigateToDetail(contentId) {
+            window.location.href = `detail.html?id=${contentId}`;
+        }
+    </script>
+</body>
+</html>
