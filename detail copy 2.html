@@ -59,27 +59,14 @@
         window.addEventListener('load', initFirebase);
 
         // Function to load and play a specific video URL (made global)
-        window.playVideo = (videoUrl, seriesTitle = '', seasonNumber = '', episodeNumber = '') => {
+        window.playVideo = (videoUrl) => {
+            document.getElementById('watchSection').style.display = 'block'; // Ensure watch section is visible when a video is played
             const playerContainer = document.getElementById('playerContainer');
-            const episodeInfoElem = document.getElementById('episodeInfo'); // Get the new element
-            const watchSection = document.getElementById('watchSection'); // Get the watch section
-
             playerContainer.innerHTML = ''; // Clear previous player
 
             if (!videoUrl) {
                 playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour cet épisode.</p>';
-                episodeInfoElem.textContent = ''; // Clear episode info
-                watchSection.style.display = 'none'; // Hide watch section if no video URL
                 return;
-            }
-
-            // Update episode info
-            if (seriesTitle && seasonNumber && episodeNumber) {
-                episodeInfoElem.textContent = `${seriesTitle} - Saison ${seasonNumber}, Épisode ${episodeNumber}`;
-                watchSection.style.display = 'block'; // Ensure watch section is visible
-            } else {
-                episodeInfoElem.textContent = ''; // Clear for films or if info is missing
-                watchSection.style.display = 'block'; // Ensure watch section is visible for films
             }
 
             // Check if it's an embed URL
@@ -169,30 +156,30 @@
                                         const episodeButton = document.createElement('button');
                                         episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
                                         episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
-                                        // Pass seriesTitle, seasonNumber, episodeNumber to playVideo
-                                        episodeButton.onclick = () => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber);
+                                        episodeButton.onclick = () => window.playVideo(episode.videoUrl);
                                         episodesGrid.appendChild(episodeButton);
                                     });
                                 }
                             });
                             // No automatic playback of the first episode for series
-                            window.playVideo(null); // Clear player, displaying "Aucune vidéo disponible pour cet épisode." and hiding watch section
+                            window.playVideo(null); // Clear player, displaying "Aucune vidéo disponible pour cet épisode."
+                            watchSection.style.display = 'none'; // Keep watch section hidden after clearing player
                         } else {
                              episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
-                             window.playVideo(null); // Clear player and hide watch section
+                             window.playVideo(null); // Clear player
+                             watchSection.style.display = 'none'; // Hide watch section if no episodes are configured
                         }
 
                     } else { // It's a film or series without episode data
                         episodesSection.style.display = 'none'; // Hide episodes section
                         playMainContentButton.style.display = ''; // Show main play button for films
                         watchSection.style.display = 'block'; // Ensure watch section is visible for films
-                        document.getElementById('episodeInfo').textContent = data.title; // Display film title
 
                         // Set the onclick for the main play button for films
-                        playMainContentButton.onclick = () => window.playVideo(data.videoUrl, data.title); // Pass film title
+                        playMainContentButton.onclick = () => window.playVideo(data.videoUrl);
 
                         // Automatically play the film if available
-                        window.playVideo(data.videoUrl, data.title); // Pass film title
+                        window.playVideo(data.videoUrl);
                     }
 
                 } else {
@@ -214,7 +201,6 @@
             document.getElementById('heroDetailSection').style.backgroundImage = `url('https://placehold.co/1200x500/000000/FFFFFF?text=Contenu+Non+Trouve')`;
             document.getElementById('episodesSection').style.display = 'none'; // Hide episodes section
             document.getElementById('watchSection').style.display = 'none'; // Hide watch section when content is not found
-            document.getElementById('episodeInfo').textContent = ''; // Clear episode info
         };
 
         // The playContent function is now dynamically set or hidden based on video type
@@ -286,8 +272,8 @@
             </section>
 
             <section id="watchSection" class="mb-8">
-                <h2 class="text-3xl font-bold mb-2 text-white">Regarder</h2>
-                <div id="episodeInfo" class="text-gray-300 text-xl mb-4"></div> <div id="playerContainer" class="video-container">
+                <h2 class="text-3xl font-bold mb-4 text-white">Regarder</h2>
+                <div id="playerContainer" class="video-container">
                     <p class="text-gray-400 text-center py-10">Chargement de la vidéo...</p>
                 </div>
             </section>
