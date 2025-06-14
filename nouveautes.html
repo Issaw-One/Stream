@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PafStreaming - Nouveautés</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, where, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
+            authDomain: "stream-df8b9.firebaseapp.com",
+            projectId: "stream-df8b9",
+            storageBucket: "stream-df8b9.firebasestorage.app",
+            messagingSenderId: "488904493156",
+            appId: "1:488904493156:web:8e3c1a7c5c0d2b6b0c8b3e"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let allContent = []; // To store all content fetched from Firestore
+
+        // Function to display content
+        window.displayContent = (contentToDisplay) => {
+            const contentGrid = document.getElementById('contentGrid');
+            contentGrid.innerHTML = ''; // Clear existing content
+
+            if (contentToDisplay.length === 0) {
+                contentGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Aucune nouveauté disponible pour le moment.</p>';
+                return;
+            }
+
+            contentToDisplay.forEach(content => {
+                const contentCard = `
+                    <div class="relative group cursor-pointer rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 bg-gray-800">
+                        <img src="${content.imageUrl}" alt="${content.title}" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold text-white mb-2">${content.title}</h3>
+                            <p class="text-gray-400 text-sm">${content.type === 'film' ? 'Film' : 'Série'}</p>
+                            <div class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <button onclick="window.location.href='detail.html?id=${content.id}'" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">Voir les détails</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                contentGrid.innerHTML += contentCard;
+            });
+        };
+
+        // Function to filter content based on search input
+        window.filterContent = () => {
+            const searchBar = document.getElementById('searchBar');
+            const searchTerm = searchBar.value.toLowerCase();
+            const filteredContent = allContent.filter(content =>
+                content.title.toLowerCase().includes(searchTerm)
+            );
+            window.displayContent(filteredContent);
+        };
+
+        // Fetch content from Firestore
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const q = query(collection(db, "content"), orderBy("releaseDate", "desc")); // Order by releaseDate descending
+                onSnapshot(q, (snapshot) => {
+                    const newContent = [];
+                    const oneMonthAgo = new Date();
+                    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1); // Content released in the last month
+
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        // Assuming you have a 'releaseDate' field in your documents,
+                        // which should be a Firebase Timestamp or a Date object
+                        if (data.releaseDate && data.releaseDate.toDate() >= oneMonthAgo) {
+                            newContent.push({ id: doc.id, ...data });
+                        }
+                    });
+                    allContent = newContent;
+                    window.displayContent(allContent);
+                }, (error) => {
+                    console.error("Error fetching documents: ", error);
+                    document.getElementById('contentGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Erreur lors du chargement des nouveautés.</p>';
+                });
+            } else {
+                signInAnonymously(auth).catch((error) => {
+                    console.error("Error signing in anonymously: ", error);
+                    document.getElementById('contentGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Veuillez vous connecter pour voir les nouveautés.</p>';
+                });
+            }
+        });
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans">
+    <header class="bg-gray-800 p-6 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-4xl font-bold text-white"><a href="index.html" class="text-white hover:text-gray-300">PafStreaming</a></h1>
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="index.html" class="text-white hover:text-gray-300 text-lg">Accueil</a></li>
+                    <li><a href="films.html" class="text-white hover:text-gray-300 text-lg">Films</a></li>
+                    <li><a href="series.html" class="text-white hover:text-gray-300 text-lg">Séries</a></li>
+                    <li><a href="nouveautes.html" class="text-blue-400 hover:text-blue-300 text-lg font-semibold">Nouveautés</a></li>
+                    <li><a href="admin.html" class="text-white hover:text-gray-300 text-lg">Admin</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto mt-8 px-4">
+        <section class="text-center py-16 px-4 bg-gradient-to-r from-blue-700 to-blue-900 rounded-lg shadow-xl mb-8">
+            <h1 class="text-5xl font-extrabold mb-4 text-white">Nos Nouveautés</h1>
+            <p class="text-lg text-blue-200 max-w-xl mx-auto mb-6">
+                Découvrez les derniers films et séries ajoutés à notre catalogue.
+            </p>
+        </section>
+
+        <section class="p-8">
+            <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher une nouveauté..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </section>
+
+        <section class="p-8">
+            <h2 class="text-3xl font-bold mb-6 text-white">Dernières Sorties</h2>
+            <div class="relative">
+                <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
+                    <p class="col-span-full text-center text-gray-500">Chargement des nouveautés...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner mt-8">
+        <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
+    </footer>
+</body>
+</html>
