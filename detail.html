@@ -110,7 +110,7 @@
 
             try {
                 // Path for user-specific data (assuming content added via admin is private)
-                const contentDocRef = doc(window.db, `users/${window.userId}/films_series`, contentId);
+                const contentDocRef = doc(window.db, `users/${window.userId}/all_films_series`, contentId);
                 // If the content is public and not linked to a specific user, use a global path:
                 // const contentDocRef = doc(window.db, `all_films_series`, contentId);
 
