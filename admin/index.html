@@ -352,16 +352,16 @@
                 // <<<<<<<<<<<<<<<<<<<<<<<<<<<< ATTENTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 // DECOMMENTER LE BLOC SUIVANT UNE SEULE FOIS POUR CREER LE PREMIER ADMIN
                 // APRES L'AVOIR EXÉCUTÉ, COMMENTEZ-LE IMMEDIATEMENT POUR DES RAISONS DE SÉCURITÉ
-                /*
+                
                 try {
-                    const userCredential = await createUserWithEmailAndPassword(window.auth, "votre_email_admin@exemple.com", "votre_mot_de_passe_secure");
+                    const userCredential = await createUserWithEmailAndPassword(window.auth, "issaw@tutanota.com", "@Mary64300420");
                     console.log("Compte administrateur créé :", userCredential.user.email);
                     window.displayMessage("Compte administrateur créé avec succès ! Connectez-vous maintenant.", 'success');
                 } catch (error) {
                     console.error("Erreur lors de la création du compte administrateur :", error);
                     window.displayMessage(`Erreur création admin: ${error.message}`, 'error');
                 }
-                */
+                
                 // <<<<<<<<<<<<<<<<<<<<<<<<<< FIN DU BLOC D'ATTENTION >>>>>>>>>>>>>>>>>>>>>>>>>
 
                 onAuthStateChanged(window.auth, (user) => {
