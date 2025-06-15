@@ -9,28 +9,28 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c; /* Couleur de fond sombre */
-            color: #e2e8f0; /* Couleur de texte claire */
+            background-color: #1a202c; /* Dark background color */
+            color: #e2e8f0; /* Light text color */
         }
         .sidebar {
-            background-color: #1f2937; /* Gris plus foncé pour la barre latérale */
+            background-color: #1f2937; /* Darker gray for sidebar */
         }
         .header {
             background-color: #1f2937;
         }
         .card {
-            background-color: #2d3748; /* Couleur de fond des cartes */
+            background-color: #2d3748; /* Card background color */
         }
         .modal {
-            display: none; /* Masqué par défaut */
-            position: fixed; /* Reste en place */
-            z-index: 100; /* Se place au-dessus */
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
             left: 0;
             top: 0;
-            width: 100%; /* Pleine largeur */
-            height: 100%; /* Pleine hauteur */
-            overflow: auto; /* Permet le défilement si nécessaire */
-            background-color: rgba(0,0,0,0.8); /* Noir avec opacité */
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
             justify-content: center;
             align-items: center;
         }
@@ -40,7 +40,7 @@
             padding: 30px;
             border-radius: 8px;
             width: 90%;
-            max-width: 900px; /* Modale plus large pour les résultats de recherche */
+            max-width: 900px; /* Wider modal for search results */
             position: relative;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
@@ -91,106 +91,84 @@
         </div>
     </div>
 
-    <!-- Modale de connexion -->
-    <div id="loginModal" class="modal" style="display: flex;">
-        <div class="modal-content max-w-md text-center">
-            <h2 class="text-2xl font-bold mb-6 text-white">Connexion Administrateur</h2>
-            <form id="loginForm">
-                <div class="mb-4">
-                    <label for="loginEmail" class="block text-gray-400 text-sm font-bold mb-2">Email :</label>
-                    <input type="email" id="loginEmail" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="admin@exemple.com" required>
+    <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
+        <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">PafStreaming</div>
+        <nav class="w-full">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l-7 7m7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span>Tableau de bord</span>
+            </a>
+            <div class="text-gray-400 uppercase text-xs font-semibold mt-6 mb-2 ml-3">Contenu</div>
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h18M3 16h18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Films</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 4l-4 4 4 4"/></svg>
+                <span>Séries</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="flex-grow flex flex-col">
+        <header class="header p-6 flex justify-between items-center shadow-lg">
+            <h1 class="text-3xl font-bold text-white">Tableau de bord</h1>
+            <div class="flex items-center space-x-4">
+                <span id="loggedInUser" class="text-gray-300">Chargement...</span>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors">Déconnexion</button>
+            </div>
+        </header>
+
+        <main class="flex-grow p-6">
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="card p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-2">Films et séries</h2>
+                    <p class="text-4xl font-bold">19</p>
+                    <p class="text-gray-400">Total Films et Séries</p>
                 </div>
-                <div class="mb-6">
-                    <label for="loginPassword" class="block text-gray-400 text-sm font-bold mb-2">Mot de passe :</label>
-                    <input type="password" id="loginPassword" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Votre mot de passe" required>
+                <div class="card p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-2">Films</h2>
+                    <p class="text-4xl font-bold">15</p>
+                    <p class="text-gray-400">Total Films</p>
                 </div>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors w-full">Se connecter</button>
-            </form>
-            <p id="loginError" class="text-red-400 mt-4 hidden">Erreur de connexion.</p>
-        </div>
-    </div>
-
-    <!-- Contenu de l'administration (masqué par défaut) -->
-    <div id="adminContent" class="flex-grow flex flex-col hidden">
-        <aside class="sidebar w-64 p-6 flex flex-col items-center shadow-lg">
-            <div class="text-2xl font-bold text-white uppercase tracking-wider mb-8">PafStreaming</div>
-            <nav class="w-full">
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-white bg-blue-700 font-semibold mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l-7 7m7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    <span>Tableau de bord</span>
-                </a>
-                <div class="text-gray-400 uppercase text-xs font-semibold mt-6 mb-2 ml-3">Contenu</div>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h18M3 16h18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span>Films</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 4l-4 4 4 4"/></svg>
-                    <span>Séries</span>
-                </a>
-            </nav>
-        </aside>
-
-        <div class="flex-grow flex flex-col">
-            <header class="header p-6 flex justify-between items-center shadow-lg">
-                <h1 class="text-3xl font-bold text-white">Tableau de bord</h1>
-                <div class="flex items-center space-x-4">
-                    <span id="loggedInUser" class="text-gray-300">Chargement...</span>
-                    <button id="logoutButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors">Déconnexion</button>
+                <div class="card p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-2">Séries</h2>
+                    <p class="text-4xl font-bold">4</p>
+                    <p class="text-gray-400">Total Séries</p>
                 </div>
-            </header>
+            </section>
 
-            <main class="flex-grow p-6">
-                <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="card p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold mb-2">Films et séries</h2>
-                        <p class="text-4xl font-bold">19</p>
-                        <p class="text-gray-400">Total Films et Séries</p>
-                    </div>
-                    <div class="card p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold mb-2">Films</h2>
-                        <p class="text-4xl font-bold">15</p>
-                        <p class="text-gray-400">Total Films</p>
-                    </div>
-                    <div class="card p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold mb-2">Séries</h2>
-                        <p class="text-4xl font-bold">4</p>
-                        <p class="text-gray-400">Total Séries</p>
-                    </div>
-                </section>
-
-                <section class="card p-6 rounded-lg shadow-md">
-                    <div class="mb-4 flex items-center space-x-2">
-                        <input type="text" id="contentSearchInput" placeholder="Rechercher un film ou une série..." class="flex-grow p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.filterContent()">Rechercher</button>
-                    </div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Tous les films</h2>
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-left">
-                            <thead>
-                                <tr class="border-b border-gray-700">
-                                    <th class="py-3 px-4 text-gray-400">ID</th>
-                                    <th class="py-3 px-4 text-gray-400">Titre</th>
-                                    <th class="py-3 px-4 text-gray-400">Genre</th>
-                                    <th class="py-3 px-4 text-gray-400">Date d'ajout / modif.</th>
-                                    <th class="py-3 px-4 text-gray-400">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="contentTableBody">
-                                <tr>
-                                    <td colspan="5" class="py-4 text-center text-gray-500">
-                                        Chargement des contenus...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </main>
-        </div>
+            <section class="card p-6 rounded-lg shadow-md">
+                <div class="mb-4 flex items-center space-x-2">
+                    <input type="text" id="contentSearchInput" placeholder="Rechercher un film ou une série..." class="flex-grow p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.filterContent()">Rechercher</button>
+                </div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Tous les films</h2>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors" onclick="window.openAddModal()">Ajouter un film / série</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="py-3 px-4 text-gray-400">ID</th>
+                                <th class="py-3 px-4 text-gray-400">Titre</th>
+                                <th class="py-3 px-4 text-gray-400">Genre</th>
+                                <th class="py-3 px-4 text-gray-400">Date d'ajout / modif.</th>
+                                <th class="py-3 px-4 text-gray-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contentTableBody">
+                            <tr>
+                                <td colspan="5" class="py-4 text-center text-gray-500">
+                                    Chargement des contenus...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
 
     <div id="addMovieModal" class="modal">
@@ -311,12 +289,13 @@
 
 
     <script type="module">
-        // Importation des fonctions Firebase nécessaires
+        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
-        // Votre configuration Firebase
+        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
             authDomain: "stream-df8b9.firebaseapp.com",
@@ -324,105 +303,61 @@
             storageBucket: "stream-df8b9.firebasestorage.app",
             messagingSenderId: "488904493156",
             appId: "1:488904493156:web:9b468948bc244b9a78f771",
-            measurementId: "G-SJFE58Y2JN"
+            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
         };
 
-        // Variables globales pour les services Firebase
+        // Global variables for Firebase services
         window.app = null;
         window.db = null;
         window.auth = null;
-        window.userId = null; // L'ID de l'utilisateur sera défini par Firebase Auth
+        window.userId = null; // userId will be set by Firebase Auth
 
-        // Éléments du DOM pour la connexion
-        const loginModal = document.getElementById('loginModal');
-        const loginForm = document.getElementById('loginForm');
-        const loginEmailInput = document.getElementById('loginEmail');
-        const loginPasswordInput = document.getElementById('loginPassword');
-        const loginErrorText = document.getElementById('loginError');
-        const adminContentDiv = document.getElementById('adminContent');
-        const logoutButton = document.getElementById('logoutButton');
-
-        // Initialisation de Firebase et gestion de l'authentification
+        // Initialize Firebase and set up authentication
         const initFirebase = async () => {
             try {
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
+                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
-                // <<<<<<<<<<<<<<<<<<<<<<<<<<<< ATTENTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                // DECOMMENTER LE BLOC SUIVANT UNE SEULE FOIS POUR CREER LE PREMIER ADMIN
-                // APRES L'AVOIR EXÉCUTÉ, COMMENTEZ-LE IMMEDIATEMENT POUR DES RAISONS DE SÉCURITÉ
-                /*
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(window.auth, "votre_email_admin@exemple.com", "votre_mot_de_passe_secure");
-                    console.log("Compte administrateur créé :", userCredential.user.email);
-                    window.displayMessage("Compte administrateur créé avec succès ! Connectez-vous maintenant.", 'success');
-                } catch (error) {
-                    console.error("Erreur lors de la création du compte administrateur :", error);
-                    window.displayMessage(`Erreur création admin: ${error.message}`, 'error');
-                }
-                */
-                // <<<<<<<<<<<<<<<<<<<<<<<<<< FIN DU BLOC D'ATTENTION >>>>>>>>>>>>>>>>>>>>>>>>>
+                // Authenticate user anonymously. For admin, you might want a more robust auth.
+                await signInAnonymously(window.auth);
 
+                // Listen for auth state changes
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié:", window.userId);
-                        document.getElementById('loggedInUser').textContent = `Bonjour, ${user.email}`;
-                        loginModal.style.display = 'none'; // Cacher la modale de connexion
-                        adminContentDiv.classList.remove('hidden'); // Afficher le contenu de l'administration
-                        window.setupContentListener(); // Commencer à écouter les contenus
+                        window.displayMessage(`Connecté en tant que: ${window.userId.substring(0, 8)}...`, 'success');
+                        document.getElementById('loggedInUser').textContent = `Bonjour, ${window.userId.substring(0, 8)}...`;
+                        // Start listening to content changes only after auth is ready
+                        window.setupContentListener();
                     } else {
-                        window.userId = null;
-                        console.log("Utilisateur déconnecté.");
-                        document.getElementById('loggedInUser').textContent = `Non connecté`;
-                        loginModal.style.display = 'flex'; // Afficher la modale de connexion
-                        adminContentDiv.classList.add('hidden'); // Masquer le contenu de l'administration
+                        // This case should ideally not happen for an admin panel if robust auth is enforced
+                        window.userId = crypto.randomUUID(); // Fallback ID if no user is signed in
+                        console.log("Utilisateur anonyme ou déconnecté. ID généré:", window.userId);
+                        window.displayMessage("Connecté en mode anonyme (accès restreint possible).", 'info');
+                        document.getElementById('loggedInUser').textContent = `Bonjour, Anonyme (${window.userId.substring(0, 8)}...)`;
+                        window.setupContentListener(); // Attempt to load content even if anonymous
                     }
                 });
             } catch (error) {
-                console.error("Erreur lors de l'initialisation de Firebase :", error);
+                console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
                 window.displayMessage(`Erreur Firebase: ${error.message}`, 'error');
             }
         };
 
-        // Gérer la soumission du formulaire de connexion
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginEmailInput.value;
-            const password = loginPasswordInput.value;
-            loginErrorText.classList.add('hidden'); // Masquer l'erreur précédente
+        // Initialize Firebase when the window loads
+        window.addEventListener('load', initFirebase);
 
-            try {
-                await signInWithEmailAndPassword(window.auth, email, password);
-                window.displayMessage("Connexion réussie !", 'success');
-            } catch (error) {
-                console.error("Erreur de connexion :", error);
-                loginErrorText.textContent = "Email ou mot de passe incorrect.";
-                loginErrorText.classList.remove('hidden');
-                window.displayMessage(`Échec de la connexion: ${error.message}`, 'error');
-            }
-        });
-
-        // Gérer la déconnexion
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await signOut(window.auth);
-                window.displayMessage("Déconnexion réussie !", 'info');
-            } catch (error) {
-                console.error("Erreur lors de la déconnexion :", error);
-                window.displayMessage(`Erreur déconnexion: ${error.message}`, 'error');
-            }
-        });
-
-        // Fonction pour configurer l'écouteur de contenu en temps réel (rendue globale)
+        // Function to set up real-time content listener (made global)
         window.setupContentListener = () => {
             if (!window.db || !window.userId) {
                 console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
                 return;
             }
 
-            // Chemin pour TOUTES les données publiques
+            // Path for ALL public data
             const contentCollectionRef = collection(window.db, `all_films_series`);
 
             const q = query(contentCollectionRef);
@@ -432,18 +367,18 @@
                 snapshot.forEach((doc) => {
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
-                window.allContentData = contentList; // Stocke tout le contenu globalement pour le filtrage
-                window.displayContent(contentList); // Appelle displayContent global
+                window.allContentData = contentList; // Store all content globally for filtering
+                window.displayContent(contentList); // Call global displayContent
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
                 window.displayMessage(`Erreur de synchronisation des contenus: ${error.message}`, 'error');
             });
         };
 
-        // Fonction pour afficher le contenu dans le tableau (rendue globale)
+        // Function to display content in the table (made global)
         window.displayContent = (contents) => {
             const tbody = document.getElementById('contentTableBody');
-            tbody.innerHTML = ''; // Efface les lignes existantes
+            tbody.innerHTML = ''; // Clear existing rows
 
             if (contents.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-gray-500">
@@ -452,18 +387,18 @@
                 return;
             }
 
-            // Trie par createdAt par ordre décroissant, puis par updatedAt par ordre décroissant
+            // Sort by createdAt in descending order, then by updatedAt in descending order
             contents.sort((a, b) => {
                 const dateA = a.createdAt || a.updatedAt || 0;
                 const dateB = b.createdAt || b.updatedAt || 0;
-                return dateB - dateA; // Ordre décroissant
+                return dateB - dateA; // Descending order
             });
 
             contents.forEach(content => {
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700 last:border-b-0';
                 let genreText = content.genre && Array.isArray(content.genre) ? content.genre.join(', ') : 'N/A';
-                if (content.genre && typeof content.genre === 'string') { // Gère les cas où le genre pourrait être une chaîne des anciennes sauvegardes
+                if (content.genre && typeof content.genre === 'string') { // Handle cases where genre might be a string from previous saves
                     genreText = content.genre;
                 }
 
@@ -484,33 +419,33 @@
             });
         };
 
-        // Fonction pour ajouter un nouveau contenu à Firestore (rendue globale)
+        // Function to add new content to Firestore (made global)
         window.addContentToFirestore = async (contentData) => {
             if (!window.db || !window.userId) {
                 window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
                 return;
             }
             try {
-                // Pour les séries, convertit les données des épisodes en chaîne
+                // For series, stringify the episodes data
                 if (contentData.type === 'serie' && contentData.seriesEpisodes) {
                     contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
                 }
 
-                const docRef = await addDoc(collection(window.db, `all_films_series`), { // Chemin de collection modifié ici
+                const docRef = await addDoc(collection(window.db, `all_films_series`), { // Changed collection path here
                     ...contentData,
-                    createdAt: Date.now(), // Ajoute un horodatage pour la création initiale
-                    timestamp: Date.now() // Ajoute un horodatage général pour "dernier ajout/mise à jour" pour l'affichage frontal
+                    createdAt: Date.now(), // Add timestamp for initial creation
+                    timestamp: Date.now() // Add a general timestamp for "last added/updated" for frontend display
                 });
                 console.log("Document écrit avec ID: ", docRef.id);
                 window.displayMessage("Film/Série ajouté avec succès !", 'success');
-                window.closeAddModal(); // Appelle closeAddModal global
+                window.closeAddModal(); // Call global closeAddModal
             } catch (e) {
                 console.error("Erreur lors de l'ajout du document: ", e);
                 window.displayMessage(`Erreur lors de l'ajout: ${e.message}`, 'error');
             }
         };
 
-        // Fonction pour modifier le contenu existant de Firestore (rendue globale)
+        // Function to edit existing content from Firestore (made global)
         window.editContent = async (contentId) => {
             if (!window.db || !window.userId) {
                 window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
@@ -518,7 +453,7 @@
             }
 
             try {
-                const docRef = doc(window.db, `all_films_series`, contentId); // Chemin de collection modifié ici
+                const docRef = doc(window.db, `all_films_series`, contentId); // Changed collection path here
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -529,18 +464,18 @@
                     document.getElementById('editContentPosterUrl').value = data.posterUrl;
                     document.getElementById('editContentType').value = data.type;
 
-                    // Remplit les champs en fonction du type
+                    // Populate fields based on type
                     if (data.type === 'film') {
                         document.getElementById('editContentVideoUrl').value = data.videoUrl || '';
                     } else if (data.type === 'serie') {
                         document.getElementById('editNumberOfSeasons').value = data.seriesEpisodes ? JSON.parse(data.seriesEpisodes).length : 1;
-                        // Génère dynamiquement les champs d'épisodes pour la modification
+                        // Dynamically generate episode fields for editing
                         window.generateSeasonEpisodeInputs('edit', data.seriesEpisodes ? JSON.parse(data.seriesEpisodes) : []);
                     }
                     
-                    window.toggleSeriesFields('edit'); // Ajuste la visibilité en fonction du type sélectionné
+                    window.toggleSeriesFields('edit'); // Adjust visibility based on selected type
 
-                    window.openEditModal(); // Ouvre la modale de modification
+                    window.openEditModal(); // Open the edit modal
                 } else {
                     window.displayMessage("Contenu non trouvé pour modification.", 'error');
                 }
@@ -550,24 +485,24 @@
             }
         };
 
-        // Fonction pour mettre à jour le contenu existant dans Firestore (rendue globale)
+        // Function to update existing content in Firestore (made global)
         window.updateContentInFirestore = async (contentId, contentData) => {
             if (!window.db || !window.userId) {
                 window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
                 return;
             }
             try {
-                const docRef = doc(window.db, `all_films_series`, contentId); // Chemin de collection modifié ici
+                const docRef = doc(window.db, `all_films_series`, contentId); // Changed collection path here
                 
-                // Pour les séries, convertit les données des épisodes en chaîne
+                // For series, stringify the episodes data
                 if (contentData.type === 'serie' && contentData.seriesEpisodes) {
                     contentData.seriesEpisodes = JSON.stringify(contentData.seriesEpisodes);
                 }
 
                 await updateDoc(docRef, {
                     ...contentData,
-                    updatedAt: Date.now(), // Ajoute un horodatage pour la dernière mise à jour
-                    timestamp: Date.now() // Met à jour l'horodatage général pour "dernier ajout/mise à jour"
+                    updatedAt: Date.now(), // Add timestamp for last update
+                    timestamp: Date.now() // Update general timestamp for "last added/updated"
                 });
                 console.log("Document mis à jour avec ID: ", contentId);
                 window.displayMessage("Film/Série mis à jour avec succès !", 'success');
@@ -579,7 +514,7 @@
         };
 
 
-        // Fonction pour supprimer le contenu de Firestore (rendue globale)
+        // Function to delete content from Firestore (made global)
         window.deleteContent = async (contentId) => {
             if (!window.db || !window.userId) {
                 window.displayMessage("Erreur: Firebase n'est pas initialisé ou l'utilisateur n'est pas authentifié.", 'error');
@@ -587,7 +522,7 @@
             }
             window.showCustomConfirm('Êtes-vous sûr de vouloir supprimer ce contenu ?', async () => {
                 try {
-                    await deleteDoc(doc(window.db, `all_films_series`, contentId)); // Chemin de collection modifié ici
+                    await deleteDoc(doc(window.db, `all_films_series`, contentId)); // Changed collection path here
                     window.displayMessage("Contenu supprimé avec succès !", 'success');
                 } catch (e) {
                     console.error("Erreur lors de la suppression du document: ", e);
@@ -596,7 +531,7 @@
             });
         };
 
-        // Boîte de message/notification personnalisée (rendue globale)
+        // Custom message/notification box (made global)
         window.displayMessage = (message, type = 'info') => {
             const messageBox = document.getElementById('messageBox');
             messageBox.textContent = message;
@@ -614,7 +549,7 @@
             }, 3000);
         };
 
-        // Boîte de dialogue de confirmation personnalisée (rendue globale)
+        // Custom confirmation dialog (made global)
         window.showCustomConfirm = (message, onConfirm) => {
             const confirmModal = document.getElementById('customConfirmModal');
             document.getElementById('customConfirmMessage').textContent = message;
@@ -636,84 +571,84 @@
         const TMDB_POSTER_FALLBACK = 'https://placehold.co/200x300/333/EEE?text=Pas+d\'affiche';
 
         const addMovieModal = document.getElementById('addMovieModal');
-        const editMovieModal = document.getElementById('editMovieModal'); // Nouvel élément de la modale de modification
+        const editMovieModal = document.getElementById('editMovieModal'); // New edit modal element
 
         const tmdbSearchInput = document.getElementById('tmdbSearchInput');
         const tmdbSearchResults = document.getElementById('tmdbSearchResults');
         const noTmdbResults = document.getElementById('noTmdbResults');
 
-        const contentTitle = document.getElementById('contentTitle'); // Modale d'ajout
-        const contentDescription = document.getElementById('contentDescription'); // Modale d'ajout
-        const contentPosterUrl = document.getElementById('contentPosterUrl'); // Modale d'ajout
-        const contentVideoUrl = document.getElementById('contentVideoUrl'); // Modale d'ajout pour les films
-        const filmVideoUrlDiv = document.getElementById('filmVideoUrlDiv'); // Div contenant l'entrée de l'URL vidéo du film
-        const contentType = document.getElementById('contentType'); // Modale d'ajout
-        const numberOfSeasonsInput = document.getElementById('numberOfSeasons'); // Modale d'ajout
-        const seriesFieldsDiv = document.getElementById('seriesFields'); // Div des champs de série de la modale d'ajout
-        const seasonEpisodeInputsContainer = document.getElementById('seasonEpisodeInputsContainer'); // Conteneur pour les entrées de saison/épisode de la modale d'ajout
+        const contentTitle = document.getElementById('contentTitle'); // Add modal
+        const contentDescription = document.getElementById('contentDescription'); // Add modal
+        const contentPosterUrl = document.getElementById('contentPosterUrl'); // Add modal
+        const contentVideoUrl = document.getElementById('contentVideoUrl'); // Add modal for films
+        const filmVideoUrlDiv = document.getElementById('filmVideoUrlDiv'); // Div containing film video URL input
+        const contentType = document.getElementById('contentType'); // Add modal
+        const numberOfSeasonsInput = document.getElementById('numberOfSeasons'); // Add modal
+        const seriesFieldsDiv = document.getElementById('seriesFields'); // Add modal series fields div
+        const seasonEpisodeInputsContainer = document.getElementById('seasonEpisodeInputsContainer'); // Add modal container for season/episode inputs
         const addContentForm = document.getElementById('addContentForm');
 
-        const editContentId = document.getElementById('editContentId'); // Modale de modification
-        const editContentTitle = document.getElementById('editContentTitle'); // Modale de modification
-        const editContentDescription = document.getElementById('editContentDescription'); // Modale de modification
-        const editContentPosterUrl = document.getElementById('editContentPosterUrl'); // Modale de modification
-        const editContentVideoUrl = document.getElementById('editContentVideoUrl'); // Modale de modification pour les films
-        const editFilmVideoUrlDiv = document.getElementById('editFilmVideoUrlDiv'); // Div de la modale de modification pour l'URL vidéo du film
-        const editContentType = document.getElementById('editContentType'); // Modale de modification
-        const editNumberOfSeasons = document.getElementById('editNumberOfSeasons'); // Modale de modification
-        const editSeriesFields = document.getElementById('editSeriesFields'); // Div des champs de série de la modale de modification
-        const editSeasonEpisodeInputsContainer = document.getElementById('editSeasonEpisodeInputsContainer'); // Conteneur pour les entrées de saison/épisode de la modale de modification
+        const editContentId = document.getElementById('editContentId'); // Edit modal
+        const editContentTitle = document.getElementById('editContentTitle'); // Edit modal
+        const editContentDescription = document.getElementById('editContentDescription'); // Edit modal
+        const editContentPosterUrl = document.getElementById('editContentPosterUrl'); // Edit modal
+        const editContentVideoUrl = document.getElementById('editContentVideoUrl'); // Edit modal for films
+        const editFilmVideoUrlDiv = document.getElementById('editFilmVideoUrlDiv'); // Edit modal div for film video URL
+        const editContentType = document.getElementById('editContentType'); // Edit modal
+        const editNumberOfSeasons = document.getElementById('editNumberOfSeasons'); // Edit modal
+        const editSeriesFields = document.getElementById('editSeriesFields'); // Edit modal series fields div
+        const editSeasonEpisodeInputsContainer = document.getElementById('editSeasonEpisodeInputsContainer'); // Edit modal container for season/episode inputs
         const editContentForm = document.getElementById('editContentForm');
 
-        // Ajouté pour la fonctionnalité de recherche
+        // Added for search functionality
         const contentSearchInput = document.getElementById('contentSearchInput');
-        window.allContentData = []; // Pour stocker tout le contenu récupéré pour le filtrage côté client
+        window.allContentData = []; // To store all fetched content for client-side filtering
 
-        // Rendu openAddModal global
+        // Made openAddModal global
         window.openAddModal = () => {
             addMovieModal.style.display = 'flex';
-            // Efface les résultats de recherche précédents et les champs du formulaire
+            // Clear previous search results and form fields
             tmdbSearchResults.innerHTML = '';
             noTmdbResults.classList.add('hidden');
             addContentForm.reset();
-            window.toggleSeriesFields('add'); // S'assure que les champs corrects sont affichés/masqués à l'ouverture
-            seasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>'; // Efface les entrées d'épisodes à l'ouverture
+            window.toggleSeriesFields('add'); // Ensure correct fields are shown/hidden on open
+            seasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>'; // Clear episode inputs on open
         };
 
-        // Rendu closeAddModal global
+        // Made closeAddModal global
         window.closeAddModal = () => {
             addMovieModal.style.display = 'none';
         };
 
-        // Rendu openEditModal global (Nouveau)
+        // Made openEditModal global (New)
         window.openEditModal = () => {
             editMovieModal.style.display = 'flex';
         };
 
-        // Rendu closeEditModal global (Nouveau)
+        // Made closeEditModal global (New)
         window.closeEditModal = () => {
             editMovieModal.style.display = 'none';
-            // Efface les champs générés lors de la fermeture de la modale de modification
+            // Clear generated fields when closing edit modal
             editSeasonEpisodeInputsContainer.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>';
         };
 
 
-        // Ferme la modale si l'utilisateur clique en dehors
+        // Close the modal if user clicks outside of it
         window.onclick = function(event) {
             if (event.target == addMovieModal) {
-                window.closeAddModal(); // Appelle closeAddModal global
+                window.closeAddModal(); // Call global closeAddModal
             }
-            if (event.target == editMovieModal) { // Ferme la modale de modification
+            if (event.target == editMovieModal) { // Close edit modal
                 window.closeEditModal();
             }
-            // Ferme également la modale de confirmation personnalisée si cliquée en dehors
+            // Also close custom confirm modal if clicked outside
             const customConfirmModal = document.getElementById('customConfirmModal');
             if (event.target == customConfirmModal) {
                 customConfirmModal.style.display = 'none';
             }
         };
 
-        // Rendu searchTmdb global
+        // Made searchTmdb global
         window.searchTmdb = async () => {
             const query = tmdbSearchInput.value.trim();
             if (!query) {
@@ -732,7 +667,7 @@
             noTmdbResults.classList.add('hidden');
 
             try {
-                // Recherche des films et des séries télévisées
+                // Search both movies and TV shows
                 const movieResponse = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=fr-FR`);
                 const tvResponse = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=fr-FR`);
 
@@ -747,13 +682,13 @@
                 } else {
                     tmdbSearchResults.innerHTML = '';
                     combinedResults.forEach(result => {
-                        const title = result.title || result.name; // Pour les films ou les séries télévisées
+                        const title = result.title || result.name; // For movies or TV shows
                         const description = result.overview || 'Pas de description.';
                         const posterPath = result.poster_path;
                         const releaseDate = result.release_date || result.first_air_date || 'N/A';
-                        const type = result.media_type === 'movie' ? 'film' : (result.media_type === 'tv' ? 'serie' : 'unknown'); // Utilise 'film'/'serie' directement
-                        const genreIds = result.genre_ids || []; // Tableau des ID de genre
-                        const id = result.id; // ID TMDB
+                        const type = result.media_type === 'movie' ? 'film' : (result.media_type === 'tv' ? 'serie' : 'unknown'); // Use 'film'/'serie' directly
+                        const genreIds = result.genre_ids || []; // Array of genre IDs
+                        const id = result.id; // TMDB ID
                         const numberOfSeasons = result.number_of_seasons;
 
                         const card = document.createElement('div');
@@ -763,7 +698,7 @@
                             <h4 class="font-semibold text-white text-md truncate mb-1">${title}</h4>
                             <p class="text-gray-400 text-xs">${type === 'film' ? 'Film' : 'Série'} (${releaseDate.split('-')[0]})</p>
                         `;
-                        // Passe les nouveaux champs à selectTmdbResult
+                        // Pass new fields to selectTmdbResult
                         card.onclick = () => window.selectTmdbResult(title, description, posterPath, type, id, genreIds, numberOfSeasons);
                         tmdbSearchResults.appendChild(card);
                     });
@@ -775,29 +710,29 @@
             }
         };
 
-        // Rendu selectTmdbResult global
+        // Made selectTmdbResult global
         window.selectTmdbResult = async (title, description, posterPath, type, tmdbId, genreIds, numberOfSeasons) => {
             contentTitle.value = title;
             contentDescription.value = description;
             contentPosterUrl.value = posterPath ? TMDB_IMAGE_BASE_URL + posterPath : '';
-            contentType.value = type; // Définit le type directement à partir du résultat TMDB
+            contentType.value = type; // Set type directly from TMDB result
 
-            // Définit les saisons si c'est une série
+            // Set seasons if it's a series
             if (contentType.value === 'serie') {
                 numberOfSeasonsInput.value = numberOfSeasons || 1;
             }
-            window.toggleSeriesFields('add'); // Met à jour la visibilité pour la modale d'ajout
+            window.toggleSeriesFields('add'); // Update visibility for add modal
 
-            // Récupère les noms complets des genres de l'API TMDB si nécessaire
-            const genreNames = await window.getGenreNames(genreIds, type === 'film' ? 'movie' : 'tv'); // Appelle getGenreNames global
+            // Fetch full genre names from TMDB API if needed
+            const genreNames = await window.getGenreNames(genreIds, type === 'film' ? 'movie' : 'tv'); // Call global getGenreNames
             contentDescription.value = `${description}\n\nGenres: ${genreNames.join(', ')}`;
 
 
-            tmdbSearchResults.innerHTML = ''; // Efface les résultats de recherche après la sélection
-            noTmdbResults.classList.add('hidden'); // Masque le message "aucun résultat"
+            tmdbSearchResults.innerHTML = ''; // Clear search results after selection
+            noTmdbResults.classList.add('hidden'); // Hide "no results" message
         };
 
-        // Aide pour obtenir les noms de genre (nécessite un autre appel à l'API TMDB pour la liste des genres) (rendue globale)
+        // Helper to get genre names (requires another TMDB API call for genre list) (made global)
         window.getGenreNames = async (genreIds, mediaType) => {
             if (genreIds.length === 0) return [];
             if (TMDB_API_KEY === 'VOTRE_CLE_API_TMDB' || TMDB_API_KEY === '') {
@@ -811,14 +746,14 @@
                 return genreIds.map(id => {
                     const genre = genres.find(g => g.id === id);
                     return genre ? genre.name : 'Inconnu';
-                }).filter(name => name !== 'Inconnu'); // Filtre les genres inconnus
+                }).filter(name => name !== 'Inconnu'); // Filter out unknown genres
             } catch (error) {
                 console.error('Erreur lors de la récupération des genres TMDB :', error);
                 return [];
             }
         };
 
-        // Bascule la visibilité des champs spécifiques aux séries en fonction du type de modale (ajout/modification)
+        // Toggle visibility of series-specific fields based on modal type (add/edit)
         window.toggleSeriesFields = (modalType) => {
             let currentContentType, filmVideoDiv, seriesFieldsDivToToggle, seasonsInputToUse, seasonEpisodeContainerToUse;
 
@@ -838,20 +773,20 @@
 
             if (currentContentType === 'serie') {
                 seriesFieldsDivToToggle.classList.remove('hidden');
-                filmVideoDiv.classList.add('hidden'); // Masque l'URL vidéo du film pour les séries
-                contentVideoUrl.removeAttribute('required'); // N'est plus requis pour les séries
-                editContentVideoUrl.removeAttribute('required'); // N'est plus requis pour les séries dans la modale de modification
+                filmVideoDiv.classList.add('hidden'); // Hide film video URL for series
+                contentVideoUrl.removeAttribute('required'); // No longer required for series
+                editContentVideoUrl.removeAttribute('required'); // No longer required for series in edit modal
             } else { // 'film'
                 seriesFieldsDivToToggle.classList.add('hidden');
-                filmVideoDiv.classList.remove('hidden'); // Affiche l'URL vidéo du film pour les films
-                contentVideoUrl.setAttribute('required', 'true'); // Requis pour les films
-                editContentVideoUrl.setAttribute('required', 'true'); // Requis pour les films dans la modale de modification
-                // Efface les entrées de saison/épisode lors du changement de type, pour éviter les données périmées
+                filmVideoDiv.classList.remove('hidden'); // Show film video URL for films
+                contentVideoUrl.setAttribute('required', 'true'); // Required for films
+                editContentVideoUrl.setAttribute('required', 'true'); // Required for films in edit modal
+                // Clear season/episode inputs when changing type, to avoid stale data
                 seasonEpisodeContainerToUse.innerHTML = '<p class="text-gray-400 text-center">Cliquez sur "Générer champs de saisons et d\'épisodes" ci-dessus.</p>';
             }
         };
 
-        // Génère les champs de saisie pour la saison et l'épisode (rendue globale, prend maintenant le type de modale et des données existantes facultatives)
+        // Generate season and episode input fields (made global, now takes modal type and optional existing data)
         window.generateSeasonEpisodeInputs = (modalType, existingSeriesData = []) => {
             let numSeasonsInput, containerDiv;
 
@@ -870,7 +805,7 @@
                 return;
             }
 
-            containerDiv.innerHTML = ''; // Efface les entrées précédentes
+            containerDiv.innerHTML = ''; // Clear previous inputs
 
             for (let s = 1; s <= numSeasons; s++) {
                 const seasonContainer = document.createElement('div');
@@ -892,7 +827,7 @@
                 `;
                 containerDiv.appendChild(seasonContainer);
 
-                // Si des données existantes, génère automatiquement les entrées vidéo d'épisode
+                // If existing data, auto-generate episode video inputs
                 if (existingSeason && existingSeason.episodes) {
                     window.generateEpisodeVideoInputs(s, modalType, existingSeason.episodes);
                 }
@@ -900,7 +835,7 @@
             window.displayMessage("Champs de saisons générés. Spécifiez les épisodes pour chaque saison.", 'success');
         };
 
-        // Génère les entrées d'URL vidéo pour une saison spécifique (rendue globale, prend maintenant le type de modale et des données existantes facultatives)
+        // Generate video URL inputs for specific season (made global, now takes modal type and optional existing data)
         window.generateEpisodeVideoInputs = (seasonNumber, modalType, existingEpisodes = []) => {
             let numEpisodesInput, episodeVideoInputsDiv;
 
@@ -919,7 +854,7 @@
                 return;
             }
 
-            episodeVideoInputsDiv.innerHTML = ''; // Efface les entrées précédentes
+            episodeVideoInputsDiv.innerHTML = ''; // Clear previous inputs
 
             for (let e = 1; e <= numEpisodes; e++) {
                 const inputGroup = document.createElement('div');
@@ -936,7 +871,7 @@
             window.displayMessage(`Champs vidéo générés pour la Saison ${seasonNumber}.`, 'success');
         };
 
-        // Filtre le contenu en fonction de l'entrée de recherche
+        // Filter content based on search input
         window.filterContent = () => {
             const searchTerm = contentSearchInput.value.toLowerCase();
             const filteredContent = window.allContentData.filter(content =>
@@ -948,7 +883,7 @@
             window.displayContent(filteredContent);
         };
 
-        // Écouteur d'événements pour l'entrée de recherche (recherche en direct)
+        // Event listener for search input (live search)
         contentSearchInput.addEventListener('keyup', window.filterContent);
 
 
@@ -958,11 +893,11 @@
                 title: contentTitle.value,
                 description: contentDescription.value,
                 posterUrl: contentPosterUrl.value,
-                type: contentType.value, // 'film' ou 'serie'
-                genre: contentDescription.value.split('Genres: ')[1] ? contentDescription.value.split('Genres: ')[1].split(', ') : [] // Extraction simple des genres
+                type: contentType.value, // 'film' or 'serie'
+                genre: contentDescription.value.split('Genres: ')[1] ? contentDescription.value.split('Genres: ')[1].split(', ') : [] // Simple genre extraction
             };
 
-            // Gère les URL vidéo en fonction du type
+            // Handle video URLs based on type
             if (newContent.type === 'film') {
                 newContent.videoUrl = contentVideoUrl.value;
             } else if (newContent.type === 'serie') {
@@ -973,7 +908,7 @@
                     const numEpisodesInput = document.getElementById(`addNumEpisodes_S${s}`);
                     if (!numEpisodesInput) {
                         window.displayMessage(`Veuillez générer et remplir les épisodes pour la Saison ${s}.`, 'error');
-                        return; // Arrête la soumission si des champs sont manquants
+                        return; // Stop submission if fields are missing
                     }
                     const numEpisodes = parseInt(numEpisodesInput.value, 10);
                     const season = { seasonNumber: s, episodes: [] };
@@ -981,17 +916,17 @@
                         const episodeVideoUrlInput = document.getElementById(`addVideoUrl_S${s}E${e}`);
                         if (!episodeVideoUrlInput) {
                              window.displayMessage(`Lien vidéo manquant pour Saison ${s}, Épisode ${e}.`, 'error');
-                             return; // Arrête la soumission si des champs sont manquants
+                             return; // Stop submission if fields are missing
                         }
                         const episodeVideoUrl = episodeVideoUrlInput.value;
                         season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
                     }
                     seriesEpisodes.push(season);
                 }
-                newContent.seriesEpisodes = seriesEpisodes; // Stocke la structure complexe
+                newContent.seriesEpisodes = seriesEpisodes; // Store the complex structure
             }
 
-            await window.addContentToFirestore(newContent); // Appelle addContentToFirestore global
+            await window.addContentToFirestore(newContent); // Call global addContentToFirestore
         });
 
 
@@ -1008,7 +943,7 @@
 
             if (updatedContent.type === 'film') {
                 updatedContent.videoUrl = editContentVideoUrl.value;
-                updatedContent.seriesEpisodes = null; // S'assure que les données de la série sont supprimées si l'on passe au film
+                updatedContent.seriesEpisodes = null; // Ensure series data is removed if changing to film
             } else if (updatedContent.type === 'serie') {
                 const seriesEpisodes = [];
                 const numSeasons = parseInt(editNumberOfSeasons.value, 10);
@@ -1017,7 +952,7 @@
                     const numEpisodesInput = document.getElementById(`editNumEpisodes_S${s}`);
                     if (!numEpisodesInput) {
                         window.displayMessage(`Veuillez générer et remplir les épisodes pour la Saison ${s}.`, 'error');
-                        return; // Arrête la soumission si des champs sont manquants
+                        return; // Stop submission if fields are missing
                     }
                     const numEpisodes = parseInt(numEpisodesInput.value, 10);
                     const season = { seasonNumber: s, episodes: [] };
@@ -1025,7 +960,7 @@
                         const episodeVideoUrlInput = document.getElementById(`editVideoUrl_S${s}E${e}`);
                         if (!episodeVideoUrlInput) {
                             window.displayMessage(`Lien vidéo manquant pour Saison ${s}, Épisode ${e}.`, 'error');
-                            return; // Arrête la soumission si des champs sont manquants
+                            return; // Stop submission if fields are missing
                         }
                         const episodeVideoUrl = episodeVideoUrlInput.value;
                         season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
@@ -1033,16 +968,13 @@
                     seriesEpisodes.push(season);
                 }
                 updatedContent.seriesEpisodes = seriesEpisodes;
-                updatedContent.videoUrl = null; // S'assure que l'URL vidéo du film est supprimée si l'on passe à la série
+                updatedContent.videoUrl = null; // Ensure film video URL is removed if changing to series
             }
 
             await window.updateContentInFirestore(contentId, updatedContent);
         });
 
-        // Appelle la fonction d'initialisation de Firebase lorsque la fenêtre se charge
-        window.addEventListener('load', initFirebase);
-
-        // Appel initial pour définir la visibilité correcte des champs au chargement de la page pour le formulaire d'ajout
+        // Initial call to set correct field visibility on page load for the add form
         window.addEventListener('DOMContentLoaded', () => window.toggleSeriesFields('add'));
     </script>
 </body>
