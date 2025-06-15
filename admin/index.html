@@ -352,20 +352,20 @@
                 // <<<<<<<<<<<<<<<<<<<<<<<<<<<< ATTENTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 // DECOMMENTER LE BLOC SUIVANT UNE SEULE FOIS POUR CREER LE PREMIER ADMIN
                 // APRES L'AVOIR EXÉCUTÉ, COMMENTEZ-LE IMMEDIATEMENT POUR DES RAISONS DE SÉCURITÉ
-                
+                /*
                 try {
-                    const userCredential = await createUserWithEmailAndPassword(window.auth, "issaw@tutanota.com", "@Mary64300420");
+                    const userCredential = await createUserWithEmailAndPassword(window.auth, "votre_email_admin@exemple.com", "votre_mot_de_passe_secure");
                     console.log("Compte administrateur créé :", userCredential.user.email);
                     window.displayMessage("Compte administrateur créé avec succès ! Connectez-vous maintenant.", 'success');
                 } catch (error) {
                     console.error("Erreur lors de la création du compte administrateur :", error);
                     window.displayMessage(`Erreur création admin: ${error.message}`, 'error');
                 }
-                
+                */
                 // <<<<<<<<<<<<<<<<<<<<<<<<<< FIN DU BLOC D'ATTENTION >>>>>>>>>>>>>>>>>>>>>>>>>
 
                 onAuthStateChanged(window.auth, (user) => {
-                    if (user) {
+                    if (user && user.email) { // Vérifie l'existence de l'utilisateur ET la propriété email
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié:", window.userId);
                         document.getElementById('loggedInUser').textContent = `Bonjour, ${user.email}`;
@@ -374,7 +374,7 @@
                         window.setupContentListener(); // Commencer à écouter les contenus
                     } else {
                         window.userId = null;
-                        console.log("Utilisateur déconnecté.");
+                        console.log("Utilisateur déconnecté ou non authentifié par email/mot de passe.");
                         document.getElementById('loggedInUser').textContent = `Non connecté`;
                         loginModal.style.display = 'flex'; // Afficher la modale de connexion
                         adminContentDiv.classList.add('hidden'); // Masquer le contenu de l'administration
