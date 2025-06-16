@@ -142,19 +142,24 @@
 
             <main class="flex-grow p-6">
                 <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="card p-6 rounded-lg shadow-md">
+                    <!-- Card pour le total Films et Séries -->
+ <div class="card p-6 rounded-lg shadow-md">
                         <h2 class="text-xl font-semibold mb-2">Films et séries</h2>
-                        <p class="text-4xl font-bold">19</p>
+                        <p id="totalContentCount" class="text-4xl font-bold">0</p>
                         <p class="text-gray-400">Total Films et Séries</p>
                     </div>
-                    <div class="card p-6 rounded-lg shadow-md">
+
+ <!-- Card pour le total Films -->
+ <div class="card p-6 rounded-lg shadow-md">
                         <h2 class="text-xl font-semibold mb-2">Films</h2>
-                        <p class="text-4xl font-bold">15</p>
+                        <p id="totalFilmCount" class="text-4xl font-bold">0</p>
                         <p class="text-gray-400">Total Films</p>
                     </div>
-                    <div class="card p-6 rounded-lg shadow-md">
+
+ <!-- Card pour le total Séries -->
+ <div class="card p-6 rounded-lg shadow-md">
                         <h2 class="text-xl font-semibold mb-2">Séries</h2>
-                        <p class="text-4xl font-bold">4</p>
+                        <p id="totalSeriesCount" class="text-4xl font-bold">0</p>
                         <p class="text-gray-400">Total Séries</p>
                     </div>
                 </section>
@@ -342,6 +347,10 @@
         const adminContentDiv = document.getElementById('adminContent');
         const logoutButton = document.getElementById('logoutButton');
 
+        // Éléments du DOM pour les compteurs
+        const totalContentCountElement = document.getElementById('totalContentCount');
+        const totalFilmCountElement = document.getElementById('totalFilmCount');
+        const totalSeriesCountElement = document.getElementById('totalSeriesCount');
         // Initialisation de Firebase et gestion de l'authentification
         const initFirebase = async () => {
             try {
@@ -433,6 +442,15 @@
                     contentList.push({ id: doc.id, ...doc.data() });
                 });
                 window.allContentData = contentList; // Stocke tout le contenu globalement pour le filtrage
+                
+                // Met à jour les compteurs
+                const totalFilms = contentList.filter(item => item.type === 'film').length;
+                const totalSeries = contentList.filter(item => item.type === 'serie').length;
+
+                totalContentCountElement.textContent = contentList.length;
+                totalFilmCountElement.textContent = totalFilms;
+                totalSeriesCountElement.textContent = totalSeries;
+
                 window.displayContent(contentList); // Appelle displayContent global
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
