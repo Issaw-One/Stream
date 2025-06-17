@@ -99,7 +99,7 @@
                 card.innerHTML = `
                     <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg">
                     <div class="p-4">
-                        <h3 class="text-xl font-semibold text-white truncate">${content.title}</h3>
+                        <p class="text-xl font-semibold text-white truncate">${content.title}</p>
                         <p class="text-gray-400 text-sm">${content.type === 'serie' ? 'Série' : 'Film'}</p>
                     </div>
                 `;
