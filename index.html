@@ -102,7 +102,7 @@
                 card.innerHTML = `
                     <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg">
                     <div class="p-4">
-                        <h3 class="text-xl font-semibold text-white truncate">${content.title}</h3>
+                        <h3 class="text-base sm:text-lg font-semibold text-white truncate line-clamp-2">${content.title}</h3>
                         <p class="text-gray-400 text-sm">${content.type === 'serie' ? 'Série' : 'Film'}</p>
                     </div>
                 `;
@@ -161,6 +161,13 @@
             font-weight: bold;
             border-bottom: 2px solid #4dc0b5;
             padding-bottom: 4px;
+        }
+        /* Clamp text to 2 lines */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
     </style>
 </head>
