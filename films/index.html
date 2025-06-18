@@ -97,9 +97,9 @@
                 card.onclick = () => window.navigateToDetail(content.id);
 
                 card.innerHTML = `
-                    <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg">
+                    <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg" loading="lazy">
                     <div class="p-4">
-                        <h3 class="text-base sm:text-lg font-semibold text-white truncate line-clamp-2">${content.title}</h3>
+                        <h3 class="text-xl font-semibold text-white truncate">${content.title}</h3>
                         <p class="text-gray-400 text-sm">${content.type === 'serie' ? 'Série' : 'Film'}</p>
                     </div>
                 `;
@@ -159,13 +159,6 @@
             border-bottom: 2px solid #4dc0b5;
             padding-bottom: 4px;
         }
-        /* Clamp text to 2 lines */
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
     </style>
 </head>
 <body class="antialiased">
@@ -176,13 +169,14 @@
                 <span class="text-2xl font-bold text-white uppercase tracking-wider"><a href="https://stream-swart-five.vercel.app/">PafStreaming</a></span>
             </div>
             <nav class="hidden md:flex space-x-6">
-                <a href="https://stream-swart-five.vercel.app/" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
-                <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Films</a>
+                <a href="https://stream-swart-five.vercel.app" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Accueil</a>
+                <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="https://stream-swart-five.vercel.app/series" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="https://stream-swart-five.vercel.app/nouveautes" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
                 <!--<a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>-->
             </nav>
             <div class="flex items-center space-x-4">
+                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreaming">TELEGRAM</a></button>
                 <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>
@@ -191,17 +185,10 @@
         <!-- Main Section / Hero Section -->
         <main class="flex-grow pt-20"> <!-- Added padding-top to avoid overlap with fixed header -->
             
-
-            <!-- Search Bar -->
-            
-
             <!-- Films Grid -->
             <section class="p-8">
                 <h2 class="text-3xl font-bold mb-6 text-white">Tous les Films</h2>
-                <section class="p-8">
-                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher un film..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </section>
-                <div class="relative">
+                <div class="relative pt-4">
                     <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
                         <!-- Films will be dynamically loaded here by Firestore listener -->
                         <p class="col-span-full text-center text-gray-500">Chargement des films...</p>
@@ -213,7 +200,7 @@
         <!-- Footer (optional) -->
         <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
             <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
-            <p>Ce site n'héberge auccun films et séries sur ces serveurs.</p>
+            <p>Ce site n'héberge auccun films et séries.</p>
         </footer>
     </div>
 </body>
