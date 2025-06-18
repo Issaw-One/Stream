@@ -11,7 +11,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -21,7 +20,7 @@
             storageBucket: "stream-df8b9.firebasestorage.app",
             messagingSenderId: "488904493156",
             appId: "1:488904493156:web:9b468948bc244b9a78f771",
-            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
+            measurementId: "G-SJFE58Y2JN"
         };
 
         // Global variables for Firebase services
@@ -31,13 +30,17 @@
         window.userId = null; // userId will be set by Firebase Auth
         window.currentFilter = 'all'; // Global variable for the current filter
 
+        // Pagination variables
+        window.currentPage = 1;
+        window.itemsPerPage = 40; // Display 40 items per page
+        window.allContent = []; // To store all fetched content
+
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
             try {
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
-                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
                 // Authenticate user anonymously for public access
                 await signInAnonymously(window.auth);
@@ -68,15 +71,15 @@
             }
 
             // Path for ALL public data
-            const contentCollectionRef = collection(window.db, `all_films_series`); // MODIFIED HERE
+            const contentCollectionRef = collection(window.db, `all_films_series`);
             const q = query(contentCollectionRef);
 
             onSnapshot(q, (snapshot) => {
-                const contentList = [];
+                window.allContent = []; // Clear previous content
                 snapshot.forEach((doc) => {
-                    contentList.push({ id: doc.id, ...doc.data() });
+                    window.allContent.push({ id: doc.id, ...doc.data() });
                 });
-                window.displayContentCards(contentList); // Call global displayContentCards
+                window.displayContentCards(window.allContent); // Display content for the current page
             }, (error) => {
                 console.error("Erreur lors de la récupération des contenus:", error);
             });
@@ -92,12 +95,36 @@
                 return;
             }
 
-            contents.forEach(content => {
+            // Apply filter first
+            const searchBar = document.getElementById('searchBar');
+            const filterText = searchBar.value.toLowerCase();
+            const filteredContents = contents.filter(content => {
+                const title = (content.title || '').toLowerCase();
+                const genre = (content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : '').toLowerCase();
+                return title.includes(filterText) || genre.includes(filterText);
+            });
+
+            // Calculate total pages
+            const totalPages = Math.ceil(filteredContents.length / window.itemsPerPage);
+
+            // Get content for the current page
+            const startIndex = (window.currentPage - 1) * window.itemsPerPage;
+            const endIndex = startIndex + window.itemsPerPage;
+            const contentToDisplay = filteredContents.slice(startIndex, endIndex);
+
+            if (contentToDisplay.length === 0 && window.currentPage > 1) {
+                // If current page is empty after filtering, go to previous page
+                window.currentPage--;
+                window.displayContentCards(contents); // Re-render with new page
+                return;
+            }
+
+            contentToDisplay.forEach(content => {
                 const card = document.createElement('div');
                 card.className = 'content-card bg-card rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer';
                 card.setAttribute('data-id', content.id);
                 card.setAttribute('data-title', content.title);
-                card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A'); // Handle both array and string genres
+                card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A');
                 card.onclick = () => window.navigateToDetail(content.id);
 
                 card.innerHTML = `
@@ -109,8 +136,64 @@
                 `;
                 contentGrid.appendChild(card);
             });
-            window.filterContent(); // Call global filterContent
+
+            window.renderPaginationControls(totalPages);
         };
+
+        // Function to render pagination controls
+        window.renderPaginationControls = (totalPages) => {
+            const paginationControls = document.getElementById('paginationControls');
+            paginationControls.innerHTML = ''; // Clear existing controls
+
+            if (totalPages <= 1) {
+                return; // No pagination needed for 1 or fewer pages
+            }
+
+            // Previous button
+            const prevButton = document.createElement('button');
+            prevButton.className = `mx-1 px-4 py-2 rounded-lg ${window.currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+            prevButton.textContent = 'Précédent';
+            prevButton.disabled = window.currentPage === 1;
+            prevButton.onclick = () => window.goToPage(window.currentPage - 1);
+            paginationControls.appendChild(prevButton);
+
+            // Page numbers
+            const maxPageButtons = 5; // Max number of page buttons to show
+            let startPage = Math.max(1, window.currentPage - Math.floor(maxPageButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+
+            if (endPage - startPage + 1 < maxPageButtons) {
+                startPage = Math.max(1, endPage - maxPageButtons + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.className = `mx-1 px-4 py-2 rounded-lg ${window.currentPage === i ? 'bg-blue-700 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`;
+                pageButton.textContent = i;
+                pageButton.onclick = () => window.goToPage(i);
+                paginationControls.appendChild(pageButton);
+            }
+
+            // Next button
+            const nextButton = document.createElement('button');
+            nextButton.className = `mx-1 px-4 py-2 rounded-lg ${window.currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+            nextButton.textContent = 'Suivant';
+            nextButton.disabled = window.currentPage === totalPages;
+            nextButton.onclick = () => window.goToPage(window.currentPage + 1);
+            paginationControls.appendChild(nextButton);
+        };
+
+        // Function to navigate to a specific page
+        window.goToPage = (pageNumber) => {
+            if (pageNumber < 1) pageNumber = 1;
+            const totalPages = Math.ceil(window.allContent.length / window.itemsPerPage);
+            if (pageNumber > totalPages) pageNumber = totalPages;
+
+            window.currentPage = pageNumber;
+            window.displayContentCards(window.allContent); // Re-render content for the new page
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
+        };
+
 
         // Function to set the current filter and update button styles
         window.setFilter = (filterType, button) => {
@@ -124,28 +207,14 @@
             button.classList.remove('bg-gray-700', 'hover:bg-gray-600');
             button.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
-            window.filterContent(); // Re-filter content based on the new filter
+            window.currentPage = 1; // Reset to first page when filter changes
+            window.displayContentCards(window.allContent); // Re-filter and re-paginate content
         };
 
         // JavaScript for search/filter functionality (made global)
         window.filterContent = () => {
-            const searchBar = document.getElementById('searchBar');
-            const filter = searchBar.value.toLowerCase();
-            const contentCards = document.querySelectorAll('.content-card');
-
-            const currentFilter = window.currentFilter;
-
-            contentCards.forEach(card => {
-                const title = card.getAttribute('data-title').toLowerCase();
-                const genre = card.getAttribute('data-genre').toLowerCase();
-                const contentType = card.querySelector('p').innerText.toLowerCase(); // Get 'film' or 'série'
-
-                if (title.includes(filter) || genre.includes(filter)) {
-                    card.style.display = ''; // Show the card
-                } else {
-                    card.style.display = 'none'; // Hide the card
-                }
-            });
+            window.currentPage = 1; // Reset to first page on search
+            window.displayContentCards(window.allContent); // Re-filter and re-paginate content
         };
 
         // Add event listeners to filter buttons after the DOM is loaded
@@ -247,14 +316,14 @@
             <!-- "Vérifiez nos à" Section (Movies and Series) -->
             <section class="p-8">
                 <h2 class="text-3xl font-bold mb-6 text-white">Tous les Contenus</h2>
-                <section class="p-8">
-
-                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher films ou séries..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </section>
+                
                 <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
                         <!-- Content will be dynamically loaded here by Firestore listener -->
                         <p class="col-span-full text-center text-gray-500">Chargement des films et séries...</p>
                     </div>
+                </div>
+                <div id="paginationControls" class="flex justify-center mt-8">
+                    <!-- Pagination buttons will be rendered here -->
                 </div>
             </section>
         </main>
@@ -267,4 +336,3 @@
     </div>
 </body>
 </html>
-
