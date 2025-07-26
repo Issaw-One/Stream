@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="detailPageTitle">Détails - PafStreaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
+            authDomain: "stream-df8b9.firebaseapp.com",
+            projectId: "stream-df8b9",
+            storageBucket: "stream-df8b9.firebasestorage.app",
+            messagingSenderId: "488904493156",
+            appId: "1:488904493156:web:9b468948bc244b9a78f771",
+            measurementId: "G-SJFE58Y2JN" // Optional: Uncomment if you need Analytics
+        };
+
+        // Global variables for Firebase services
+        window.app = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null; // userId will be set by Firebase Auth
+        let currentPlayingEpisodeButton = null; // To keep track of the active button
+
+        // Initialize Firebase and set up authentication
+        const initFirebase = async () => {
+            try {
+                window.app = initializeApp(firebaseConfig);
+                window.db = getFirestore(window.app);
+                window.auth = getAuth(window.app);
+                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
+
+                // Authenticate user anonymously for public access
+                await signInAnonymously(window.auth);
+
+                onAuthStateChanged(window.auth, (user) => {
+                    if (user) {
+                        window.userId = user.uid;
+                        console.log("Utilisateur authentifié pour le frontend:", window.userId);
+                        window.loadContentDetails(); // Call global loadContentDetails
+                    } else {
+                        window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
+                        console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
+                        window.loadContentDetails(); // Call global loadContentDetails
+                    }
+                });
+            } catch (error) {
+                console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
+            }
+        };
+
+        window.addEventListener('load', initFirebase);
+
+        // Function to load and play a specific video URL (made global)
+        window.playVideo = (videoUrl, seriesTitle = '', seasonNumber = '', episodeNumber = '', clickedButton = null) => {
+            const playerContainer = document.getElementById('playerContainer');
+            const episodeInfoElem = document.getElementById('episodeInfo');
+            const watchSection = document.getElementById('watchSection');
+
+            // Reset previously active button
+            if (currentPlayingEpisodeButton) {
+                currentPlayingEpisodeButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                currentPlayingEpisodeButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+            }
+
+            playerContainer.innerHTML = ''; // Clear previous player
+
+            if (!videoUrl) {
+                playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour cet épisode.</p>';
+                episodeInfoElem.textContent = ''; // Clear episode info
+                watchSection.style.display = 'none'; // Hide watch section if no video URL
+                currentPlayingEpisodeButton = null; // No button is active
+                return;
+            }
+
+            // Update episode info and show watch section
+            if (seriesTitle && seasonNumber && episodeNumber) {
+                episodeInfoElem.textContent = `${seriesTitle} - Saison ${seasonNumber}, Épisode ${episodeNumber}`;
+                watchSection.style.display = 'block';
+            } else if (seriesTitle) { // For films
+                episodeInfoElem.textContent = seriesTitle;
+                watchSection.style.display = 'block';
+            }
+            else {
+                episodeInfoElem.textContent = ''; // Clear for unknown content or if info is missing
+                watchSection.style.display = 'block';
+            }
+
+            // Highlight the clicked button for series episodes
+            if (clickedButton && (seriesTitle && seasonNumber && episodeNumber)) {
+                clickedButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                clickedButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                currentPlayingEpisodeButton = clickedButton;
+            } else {
+                currentPlayingEpisodeButton = null; // No button to highlight for films or if info is incomplete
+            }
+
+
+            // Check if it's an embed URL
+            if (videoUrl.includes('uqload.net/embed-') || videoUrl.includes('goofy-banana.com/e/') || videoUrl.includes('sharecloudy.com/iframe/') || videoUrl.includes('beerscloud.com/iframe/')) {
+                const iframe = document.createElement('iframe');
+                iframe.setAttribute('src', videoUrl);
+                iframe.setAttribute('frameborder', '0');
+                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                iframe.setAttribute('allowfullscreen', '');
+                iframe.className = 'w-full h-full absolute top-0 left-0';
+                playerContainer.appendChild(iframe);
+            } else {
+                // Assume it's a direct video link (MP4, WebM, etc.)
+                const video = document.createElement('video');
+                video.setAttribute('controls', '');
+                video.setAttribute('autoplay', '');
+                video.src = videoUrl;
+                video.className = 'w-full h-full absolute top-0 left-0';
+                video.innerHTML = 'Votre navigateur ne supporte pas l\'élément vidéo.';
+                playerContainer.appendChild(video);
+                video.load();
+            }
+        };
+
+
+        // Function to load content details from Firestore (made global)
+        window.loadContentDetails = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const contentId = params.get('id');
+
+            if (!contentId) {
+                window.displayNotFound(); // Call global displayNotFound
+                return;
+            }
+
+            if (!window.db || !window.userId) {
+                console.warn("Firestore ou userId non prêts pour le chargement du contenu. Réessai...");
+                setTimeout(window.loadContentDetails, 500); // Retry after 500ms, call global loadContentDetails
+                return;
+            }
+
+            try {
+                // Path for ALL public data
+                const contentDocRef = doc(window.db, `all_films_series`, contentId); // MODIFIED HERE
+
+                const contentSnap = await getDoc(contentDocRef);
+
+                const heroDetailSection = document.getElementById('heroDetailSection');
+                const contentTitleElem = document.getElementById('contentTitle');
+                const contentDescriptionElem = document.getElementById('contentDescription');
+                const playMainContentButton = document.getElementById('playMainContentButton'); // The "Lecture" button
+                const episodesSection = document.getElementById('episodesSection');
+                const episodesGrid = document.getElementById('episodesGrid');
+                const watchSection = document.getElementById('watchSection'); // Get the watch section
+                const episodeInfoElem = document.getElementById('episodeInfo'); // Get the episode info element
+
+                if (contentSnap.exists()) {
+                    const data = contentSnap.data();
+                    document.getElementById('detailPageTitle').textContent = data.title + ' - PafStreaming';
+                    contentTitleElem.textContent = data.title;
+                    contentDescriptionElem.textContent = data.description;
+                    heroDetailSection.style.backgroundImage = `url('${data.posterUrl || 'https://placehold.co/1200x500/000000/FFFFFF?text=Affiche+Manquante'}')`;
+
+                    // Handle series episodes or single film video
+                    if (data.type === 'serie' && data.seriesEpisodes) {
+                        episodesSection.style.display = 'block'; // Show the section
+                        watchSection.style.display = 'none'; // Hide the watch section initially for series
+                        episodesGrid.innerHTML = ''; // Clear previous buttons
+                        playMainContentButton.style.display = 'none'; // Hide main play button for series
+                        episodeInfoElem.textContent = ''; // Clear episode info initially for series
+
+                        let seriesEpisodesParsed;
+                        try {
+                            seriesEpisodesParsed = JSON.parse(data.seriesEpisodes);
+                        } catch (e) {
+                            console.error("Erreur de parsing JSON pour les épisodes:", e);
+                            seriesEpisodesParsed = [];
+                        }
+
+                        if (seriesEpisodesParsed.length > 0) {
+                            seriesEpisodesParsed.forEach(season => {
+                                const seasonTitle = document.createElement('h3');
+                                seasonTitle.className = 'text-xl font-semibold text-white col-span-full mt-4 mb-2';
+                                seasonTitle.textContent = `Saison ${season.seasonNumber}`;
+                                episodesGrid.appendChild(seasonTitle);
+
+                                if (season.episodes && Array.isArray(season.episodes)) {
+                                    season.episodes.forEach(episode => {
+                                        const episodeButton = document.createElement('button');
+                                        episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
+                                        episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
+                                        // Pass seriesTitle, seasonNumber, episodeNumber and the button itself to playVideo
+                                        episodeButton.onclick = (event) => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target);
+                                        episodesGrid.appendChild(episodeButton);
+                                    });
+                                }
+                            });
+                            // No automatic playback of the first episode for series
+                            window.playVideo(null); // Clear player, displaying "Aucune vidéo disponible pour cet épisode." and hiding watch section
+                        } else {
+                             episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
+                             window.playVideo(null); // Clear player and hide watch section
+                        }
+
+                    } else { // It's a film or series without episode data
+                        episodesSection.style.display = 'none'; // Hide episodes section
+                        playMainContentButton.style.display = ''; // Show main play button for films
+                        watchSection.style.display = 'block'; // Ensure watch section is visible for films
+                        episodeInfoElem.textContent = data.title; // Display film title
+
+                        // Set the onclick for the main play button for films
+                        playMainContentButton.onclick = () => window.playVideo(data.videoUrl, data.title); // Pass film title
+
+                        // Automatically play the film if available
+                        window.playVideo(data.videoUrl, data.title); // Pass film title
+                    }
+
+                } else {
+                    window.displayNotFound(); // Call global displayNotFound
+                }
+            } catch (error) {
+                console.error("Erreur lors du chargement des détails du contenu:", error);
+                window.displayNotFound(); // Call global displayNotFound
+            }
+        };
+
+        // Made displayNotFound global
+        window.displayNotFound = () => {
+            document.getElementById('detailPageTitle').textContent = 'Contenu non trouvé - PafStreaming';
+            document.getElementById('contentTitle').textContent = 'Contenu non trouvé';
+            document.getElementById('contentDescription').textContent = 'Désolé, le film ou la série que vous recherchez n\'a pas pu être trouvé.';
+            document.getElementById('playerContainer').innerHTML = '<p class="text-gray-400 text-center py-10">Contenu non disponible.</p>';
+            document.getElementById('playMainContentButton').style.display = 'none'; // Hide play button
+            document.getElementById('heroDetailSection').style.backgroundImage = `url('https://placehold.co/1200x500/000000/FFFFFF?text=Contenu+Non+Trouve')`;
+            document.getElementById('episodesSection').style.display = 'none'; // Hide episodes section
+            document.getElementById('watchSection').style.display = 'none'; // Hide watch section when content is not found
+            document.getElementById('episodeInfo').textContent = ''; // Clear episode info
+            currentPlayingEpisodeButton = null; // No button is active
+        };
+
+        // The playContent function is now dynamically set or hidden based on video type
+        // No need for a global window.playContent = () => { ... } here.
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background color */
+            color: #e2e8f0; /* Light text color */
+        }
+        .text-neon-blue {
+            color: #4dc0b5; /* A color resembling neon blue */
+        }
+        .bg-card {
+            background-color: #2d3748; /* Background color for cards */
+        }
+        .gradient-overlay {
+            background: linear-gradient(to top, rgba(26,32,44,0.9) 0%, rgba(26,32,44,0) 50%);
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            background-color: #000;
+        }
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
+            <div class="flex items-center space-x-4">
+                <span class="text-2xl font-bold text-white uppercase tracking-wider"><a href="https://stream-swart-five.vercel.app/">PafStreaming</a></span>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="https://stream-swart-five.vercel.app" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
+                <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
+                <a href="https://stream-swart-five.vercel.app/series" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
+                <a href="https://stream-swart-five.vercel.app/nouveautes" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
+                </nav>
+            <div class="flex items-center space-x-4">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreaming">TELEGRAM</a></button>
+                <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
+            </div>
+        </header>
+
+        <main class="flex-grow pt-20 p-8">
+            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg mb-8" id="heroDetailSection">
+                <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
+                <div class="z-0">
+                    <h1 class="text-5xl font-bold mb-4" id="contentTitle">Chargement...</h1>
+                    <p class="text-lg text-gray-300 max-w-xl mb-6" id="contentDescription">
+                        Chargement de la description...
+                    </p>
+                    <div class="flex space-x-4" id="playButtonContainer">
+                        <button id="playMainContentButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200">Lecture</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="watchSection" class="mb-8"> <h2 class="text-3xl font-bold mb-2 text-white">Regarder</h2>
+                <div id="episodeInfo" class="text-gray-300 text-xl mb-4"></div> <div id="playerContainer" class="video-container">
+                    <p class="text-gray-400 text-center py-10">Chargement de la vidéo...</p>
+                </div>
+            </section>
+
+            <section id="episodesSection" class="mb-8" style="display: none;">
+                <h2 class="text-3xl font-bold mb-4 text-white">Épisodes</h2>
+                <div id="episodesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    </div>
+            </section>
+
+            </main>
+
+        <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
+            <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
+            <p>Ce site n'héberge auccun films et séries.</p>
+        </footer>
+    </div>
+</body>
+</html>
