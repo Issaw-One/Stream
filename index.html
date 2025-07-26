@@ -429,10 +429,10 @@
                 <span class="logo-mobile"><a href="https://stream-swart-five.vercel.app/">PAFSTREAMING</a></span>
                 <a href="https://t.me/PafStreamingchat" class="telegram-mobile bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">TELEGRAM</a>
             </div>
-            <div class="flex items-center space-x-4 w-full mt-2">
-                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
         </header>
+        <div class="w-full flex justify-center items-center px-4 py-2" style="background: #181e2a;">
+            <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-full max-w-md p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" style="margin: 0 auto;">
+        </div>
         <script>
             function openSidebarMobile() {
                 document.getElementById('sidebarMobile').classList.add('open');
