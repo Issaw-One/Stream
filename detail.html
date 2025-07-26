@@ -6,6 +6,7 @@
     <title id="detailPageTitle">Détails - PafStreaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="js/auth-utils.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -36,22 +37,36 @@
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
-                // const analytics = getAnalytics(window.app); // Optional: Uncomment if you need Analytics
 
-                // Authenticate user anonymously for public access
-                await signInAnonymously(window.auth);
+                // Attendre que AuthManager soit initialisé
+                await new Promise(resolve => {
+                    const checkAuthManager = () => {
+                        if (window.authManager && window.authManager.isInitialized) {
+                            resolve();
+                        } else {
+                            setTimeout(checkAuthManager, 100);
+                        }
+                    };
+                    checkAuthManager();
+                });
 
-                onAuthStateChanged(window.auth, (user) => {
+                // Configurer le callback pour les changements d'état utilisateur
+                window.authManager.onUserStateChange = (user, subscription) => {
                     if (user) {
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié pour le frontend:", window.userId);
-                        window.loadContentDetails(); // Call global loadContentDetails
+                        window.updateSubscriptionIndicator();
+                        window.loadContentDetails();
                     } else {
                         window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
                         console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
-                        window.loadContentDetails(); // Call global loadContentDetails
+                        window.updateSubscriptionIndicator();
+                        window.loadContentDetails();
                     }
-                });
+                };
+
+                // Initialiser l'affichage
+                window.updateSubscriptionIndicator();
             } catch (error) {
                 console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
             }
@@ -64,6 +79,15 @@
             const playerContainer = document.getElementById('playerContainer');
             const episodeInfoElem = document.getElementById('episodeInfo');
             const watchSection = document.getElementById('watchSection');
+
+            // Vérifier l'accès au contenu si c'est un épisode de série
+            if (seriesTitle && seasonNumber && episodeNumber) {
+                const accessCheck = window.checkContentAccess('serie', parseInt(episodeNumber));
+                if (!accessCheck.hasAccess) {
+                    window.showPremiumUpgradeModal();
+                    return;
+                }
+            }
 
             // Reset previously active button
             if (currentPlayingEpisodeButton) {
@@ -191,10 +215,26 @@
                                 if (season.episodes && Array.isArray(season.episodes)) {
                                     season.episodes.forEach(episode => {
                                         const episodeButton = document.createElement('button');
-                                        episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
-                                        episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
-                                        // Pass seriesTitle, seasonNumber, episodeNumber and the button itself to playVideo
-                                        episodeButton.onclick = (event) => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target);
+                                        
+                                        // Vérifier l'accès à cet épisode
+                                        const accessCheck = window.checkContentAccess('serie', parseInt(episode.episodeNumber));
+                                        
+                                        if (accessCheck.hasAccess) {
+                                            episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
+                                            episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
+                                            episodeButton.onclick = (event) => window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target);
+                                        } else {
+                                            // Épisode premium - afficher avec un indicateur
+                                            episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 relative';
+                                            episodeButton.innerHTML = `
+                                                Épisode ${episode.episodeNumber}
+                                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-xs">★</span>
+                                                </div>
+                                            `;
+                                            episodeButton.onclick = () => window.showPremiumUpgradeModal();
+                                        }
+                                        
                                         episodesGrid.appendChild(episodeButton);
                                     });
                                 }
@@ -291,6 +331,12 @@
                 <a href="https://stream-swart-five.vercel.app/nouveautes" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
                 </nav>
             <div class="flex items-center space-x-4">
+                <div id="subscriptionIndicator" class="flex items-center space-x-2">
+                    <!-- Indicateur de statut d'abonnement -->
+                </div>
+                <a href="auth.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Mon Compte
+                </a>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreaming">TELEGRAM</a></button>
                 <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>

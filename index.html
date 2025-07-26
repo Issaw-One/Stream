@@ -6,6 +6,7 @@
     <title>PafStreaming - Films et Séries Gratuit</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="js/auth-utils.js"></script>
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -42,20 +43,35 @@
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
 
-                // Authenticate user anonymously for public access
-                await signInAnonymously(window.auth);
+                // Attendre que AuthManager soit initialisé
+                await new Promise(resolve => {
+                    const checkAuthManager = () => {
+                        if (window.authManager && window.authManager.isInitialized) {
+                            resolve();
+                        } else {
+                            setTimeout(checkAuthManager, 100);
+                        }
+                    };
+                    checkAuthManager();
+                });
 
-                onAuthStateChanged(window.auth, (user) => {
+                // Configurer le callback pour les changements d'état utilisateur
+                window.authManager.onUserStateChange = (user, subscription) => {
                     if (user) {
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié pour le frontend:", window.userId);
-                        window.setupContentListener(); // Call global setupContentListener
+                        window.updateSubscriptionIndicator();
+                        window.setupContentListener();
                     } else {
                         window.userId = crypto.randomUUID(); // Fallback for unauthenticated users
                         console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
-                        window.setupContentListener(); // Call global setupContentListener
+                        window.updateSubscriptionIndicator();
+                        window.setupContentListener();
                     }
-                });
+                };
+
+                // Initialiser l'affichage
+                window.updateSubscriptionIndicator();
             } catch (error) {
                 console.error("Erreur lors de l'initialisation de Firebase ou de l'authentification:", error);
             }
@@ -227,7 +243,22 @@
 
         // Function to navigate to detail page (made global)
         window.navigateToDetail = (contentId) => {
-            window.location.href = `detail.html?id=${contentId}`;
+            // Trouver le contenu correspondant
+            const content = window.allContent.find(item => item.id === contentId);
+            if (!content) {
+                window.location.href = `detail.html?id=${contentId}`;
+                return;
+            }
+
+            // Vérifier l'accès au contenu
+            const accessCheck = window.checkContentAccess(content.type);
+            
+            if (accessCheck.hasAccess) {
+                window.location.href = `detail.html?id=${contentId}`;
+            } else {
+                // Afficher la modal d'upgrade premium
+                window.showPremiumUpgradeModal();
+            }
         };
     </script>
     <style>
@@ -291,6 +322,12 @@
             </nav>
             <div class="flex items-center space-x-4">
                 <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div id="subscriptionIndicator" class="flex items-center space-x-2">
+                    <!-- Indicateur de statut d'abonnement -->
+                </div>
+                <a href="auth.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Mon Compte
+                </a>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreamingchat">TELEGRAM</a></button>
                 <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>

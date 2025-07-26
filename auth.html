@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification - PafStreaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            updateProfile 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            updateDoc,
+            collection,
+            addDoc,
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf5VvODie8_V8PDNUig66-yyxA12dhY-c",
+            authDomain: "stream-df8b9.firebaseapp.com",
+            projectId: "stream-df8b9",
+            storageBucket: "stream-df8b9.firebasestorage.app",
+            messagingSenderId: "488904493156",
+            appId: "1:488904493156:web:9b468948bc244b9a78f771",
+            measurementId: "G-SJFE58Y2JN"
+        };
+
+        // Variables globales
+        window.app = null;
+        window.db = null;
+        window.auth = null;
+        window.currentUser = null;
+
+        // Initialisation Firebase
+        const initFirebase = async () => {
+            try {
+                window.app = initializeApp(firebaseConfig);
+                window.db = getFirestore(window.app);
+                window.auth = getAuth(window.app);
+
+                onAuthStateChanged(window.auth, (user) => {
+                    window.currentUser = user;
+                    if (user) {
+                        console.log("Utilisateur connecté:", user.email);
+                        showUserProfile();
+                        checkSubscriptionStatus();
+                    } else {
+                        console.log("Aucun utilisateur connecté");
+                        showAuthForms();
+                    }
+                });
+            } catch (error) {
+                console.error("Erreur lors de l'initialisation de Firebase:", error);
+            }
+        };
+
+        // Fonction d'inscription
+        window.registerUser = async () => {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const username = document.getElementById('registerUsername').value;
+            const errorDiv = document.getElementById('registerError');
+
+            try {
+                errorDiv.textContent = '';
+                const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+                
+                // Mettre à jour le profil avec le nom d'utilisateur
+                await updateProfile(userCredential.user, {
+                    displayName: username
+                });
+
+                // Créer le document utilisateur dans Firestore
+                await setDoc(doc(window.db, 'users', userCredential.user.uid), {
+                    email: email,
+                    username: username,
+                    createdAt: serverTimestamp(),
+                    subscription: {
+                        type: 'free',
+                        status: 'active',
+                        startDate: serverTimestamp(),
+                        endDate: null
+                    },
+                    watchHistory: [],
+                    favorites: []
+                });
+
+                console.log("Utilisateur créé avec succès");
+            } catch (error) {
+                console.error("Erreur lors de l'inscription:", error);
+                errorDiv.textContent = getErrorMessage(error.code);
+            }
+        };
+
+        // Fonction de connexion
+        window.loginUser = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                errorDiv.textContent = '';
+                await signInWithEmailAndPassword(window.auth, email, password);
+                console.log("Connexion réussie");
+            } catch (error) {
+                console.error("Erreur lors de la connexion:", error);
+                errorDiv.textContent = getErrorMessage(error.code);
+            }
+        };
+
+        // Fonction de déconnexion
+        window.logoutUser = async () => {
+            try {
+                await signOut(window.auth);
+                console.log("Déconnexion réussie");
+            } catch (error) {
+                console.error("Erreur lors de la déconnexion:", error);
+            }
+        };
+
+        // Vérifier le statut d'abonnement
+        window.checkSubscriptionStatus = async () => {
+            if (!window.currentUser) return;
+
+            try {
+                const userDoc = await getDoc(doc(window.db, 'users', window.currentUser.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const subscription = userData.subscription;
+                    
+                    // Vérifier si l'abonnement premium est expiré
+                    if (subscription.type === 'premium' && subscription.endDate) {
+                        const endDate = subscription.endDate.toDate();
+                        if (endDate < new Date()) {
+                            // Abonnement expiré, passer en gratuit
+                            await updateDoc(doc(window.db, 'users', window.currentUser.uid), {
+                                'subscription.type': 'free',
+                                'subscription.status': 'expired'
+                            });
+                            updateSubscriptionDisplay('free', 'expired');
+                        } else {
+                            updateSubscriptionDisplay(subscription.type, subscription.status);
+                        }
+                    } else {
+                        updateSubscriptionDisplay(subscription.type, subscription.status);
+                    }
+                }
+            } catch (error) {
+                console.error("Erreur lors de la vérification de l'abonnement:", error);
+            }
+        };
+
+        // Mettre à jour l'affichage de l'abonnement
+        window.updateSubscriptionDisplay = (type, status) => {
+            const subscriptionInfo = document.getElementById('subscriptionInfo');
+            const upgradeButton = document.getElementById('upgradeButton');
+            
+            if (type === 'premium') {
+                subscriptionInfo.innerHTML = `
+                    <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold">Abonnement Premium</h3>
+                        <p class="text-sm">Accès complet à toutes les séries</p>
+                        <p class="text-xs mt-2">Statut: ${status === 'active' ? 'Actif' : 'Expiré'}</p>
+                    </div>
+                `;
+                upgradeButton.style.display = 'none';
+            } else {
+                subscriptionInfo.innerHTML = `
+                    <div class="bg-gray-700 text-white p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold">Compte Gratuit</h3>
+                        <p class="text-sm">Accès limité - Premier épisode seulement</p>
+                        <p class="text-xs mt-2">Statut: ${status === 'active' ? 'Actif' : 'Inactif'}</p>
+                    </div>
+                `;
+                upgradeButton.style.display = 'block';
+            }
+        };
+
+        // Fonction pour passer à l'abonnement premium
+        window.upgradeToPremium = async () => {
+            if (!window.currentUser) return;
+
+            try {
+                // Simuler un paiement (dans un vrai projet, utilisez Stripe ou PayPal)
+                const endDate = new Date();
+                endDate.setMonth(endDate.getMonth() + 1); // 1 mois d'abonnement
+
+                await updateDoc(doc(window.db, 'users', window.currentUser.uid), {
+                    'subscription.type': 'premium',
+                    'subscription.status': 'active',
+                    'subscription.startDate': serverTimestamp(),
+                    'subscription.endDate': endDate
+                });
+
+                alert('Félicitations ! Vous êtes maintenant abonné premium !');
+                checkSubscriptionStatus();
+            } catch (error) {
+                console.error("Erreur lors de la mise à niveau:", error);
+                alert('Erreur lors de la mise à niveau. Veuillez réessayer.');
+            }
+        };
+
+        // Afficher les formulaires d'authentification
+        window.showAuthForms = () => {
+            document.getElementById('authForms').style.display = 'block';
+            document.getElementById('userProfile').style.display = 'none';
+        };
+
+        // Afficher le profil utilisateur
+        window.showUserProfile = () => {
+            document.getElementById('authForms').style.display = 'none';
+            document.getElementById('userProfile').style.display = 'block';
+            
+            if (window.currentUser) {
+                document.getElementById('userEmail').textContent = window.currentUser.email;
+                document.getElementById('userName').textContent = window.currentUser.displayName || 'Utilisateur';
+            }
+        };
+
+        // Fonction pour obtenir les messages d'erreur
+        function getErrorMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/email-already-in-use':
+                    return 'Cette adresse email est déjà utilisée.';
+                case 'auth/invalid-email':
+                    return 'Adresse email invalide.';
+                case 'auth/operation-not-allowed':
+                    return 'L\'inscription par email/mot de passe n\'est pas activée.';
+                case 'auth/weak-password':
+                    return 'Le mot de passe doit contenir au moins 6 caractères.';
+                case 'auth/user-disabled':
+                    return 'Ce compte a été désactivé.';
+                case 'auth/user-not-found':
+                    return 'Aucun compte trouvé avec cette adresse email.';
+                case 'auth/wrong-password':
+                    return 'Mot de passe incorrect.';
+                default:
+                    return 'Une erreur est survenue. Veuillez réessayer.';
+            }
+        }
+
+        // Initialisation au chargement de la page
+        window.addEventListener('load', initFirebase);
+    </script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <a href="index.html" class="text-2xl font-bold text-blue-500">PafStreaming</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-300 hover:text-white transition-colors">Accueil</a>
+                    <a href="series/index.html" class="text-gray-300 hover:text-white transition-colors">Séries</a>
+                    <a href="films/index.html" class="text-gray-300 hover:text-white transition-colors">Films</a>
+                    <a href="nouveautes/index.html" class="text-gray-300 hover:text-white transition-colors">Nouveautés</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Titre de la page -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Gestion du Compte</h1>
+            <p class="text-gray-400">Connectez-vous ou créez un compte pour accéder à plus de contenu</p>
+        </div>
+
+        <!-- Formulaires d'authentification -->
+        <div id="authForms" class="grid md:grid-cols-2 gap-8">
+            <!-- Formulaire de connexion -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Connexion</h2>
+                <form onsubmit="event.preventDefault(); loginUser();">
+                    <div class="mb-4">
+                        <label for="loginEmail" class="block text-sm font-medium mb-2">Email</label>
+                        <input type="email" id="loginEmail" required 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label for="loginPassword" class="block text-sm font-medium mb-2">Mot de passe</label>
+                        <input type="password" id="loginPassword" required 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div id="loginError" class="text-red-400 text-sm mb-4"></div>
+                    <button type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        Se connecter
+                    </button>
+                </form>
+            </div>
+
+            <!-- Formulaire d'inscription -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Inscription</h2>
+                <form onsubmit="event.preventDefault(); registerUser();">
+                    <div class="mb-4">
+                        <label for="registerUsername" class="block text-sm font-medium mb-2">Nom d'utilisateur</label>
+                        <input type="text" id="registerUsername" required 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label for="registerEmail" class="block text-sm font-medium mb-2">Email</label>
+                        <input type="email" id="registerEmail" required 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label for="registerPassword" class="block text-sm font-medium mb-2">Mot de passe</label>
+                        <input type="password" id="registerPassword" required minlength="6"
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div id="registerError" class="text-red-400 text-sm mb-4"></div>
+                    <button type="submit" 
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        S'inscrire
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Profil utilisateur -->
+        <div id="userProfile" class="hidden">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-semibold">Profil Utilisateur</h2>
+                        <p class="text-gray-400">Bienvenue, <span id="userName">Utilisateur</span> !</p>
+                    </div>
+                    <button onclick="logoutUser()" 
+                            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        Se déconnecter
+                    </button>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">Informations du compte</h3>
+                        <p class="text-gray-400">Email: <span id="userEmail">user@example.com</span></p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">Abonnement</h3>
+                        <div id="subscriptionInfo">
+                            <!-- Le contenu sera mis à jour dynamiquement -->
+                        </div>
+                        <button id="upgradeButton" onclick="upgradeToPremium()" 
+                                class="mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            Passer à Premium
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Avantages Premium -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Avantages Premium</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                        <span>Accès à tous les épisodes de toutes les séries</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                        <span>Qualité vidéo optimale</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                        <span>Sans publicités</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm">✓</span>
+                        </div>
+                        <span>Téléchargement hors ligne</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
