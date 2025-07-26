@@ -273,180 +273,32 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
-        /* --- Ajout pour mobile --- */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
-            color: #e2e8f0;
-        }
-        .sidebar-mobile {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 75vw;
-            max-width: 320px;
-            background: #181e2a;
-            z-index: 50;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            padding: 2rem 1.5rem;
-        }
-        .sidebar-mobile.open {
-            transform: translateX(0);
-        }
-        .sidebar-mobile a {
-            color: #e2e8f0;
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
-            text-decoration: none;
-            font-weight: 600;
-            border-radius: 8px;
-            padding: 0.5rem 0.75rem;
-            transition: background 0.2s;
-        }
-        .sidebar-mobile a:hover {
-            background: #232b3e;
-        }
-        .sidebar-mobile .close-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 2rem;
-            color: #e2e8f0;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.5);
-            z-index: 40;
-            display: none;
-        }
-        .sidebar-overlay.open {
-            display: block;
-        }
-        @media (max-width: 640px) {
-            header {
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
-                padding: 1rem 0.5rem;
-                position: relative;
-            }
-            .header-mobile {
-                width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-            .burger-btn {
-                background: none;
-                border: none;
-                color: #e2e8f0;
-                font-size: 2rem;
-                margin-right: 0.5rem;
-                cursor: pointer;
-                z-index: 60;
-            }
-            .logo-mobile {
-                flex: 1;
-                text-align: center;
-                font-size: 1.5rem;
-                font-weight: bold;
-                color: #fff;
-                letter-spacing: 2px;
-            }
-            .telegram-mobile {
-                margin-left: 0.5rem;
-            }
-            nav {
-                display: none !important;
-            }
-            #searchBar {
-                width: 100% !important;
-                margin-top: 0.5rem;
-            }
-            .text-5xl {
-                font-size: 2rem;
-            }
-            .hero-section h1 {
-                font-size: 1.5rem;
-            }
-            .hero-section p {
-                font-size: 1rem;
-            }
-            .hero-section {
-                padding: 1rem !important;
-                min-height: 300px !important;
-            }
-            #heroPlayButtonContainer {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            #heroPlayButtonContainer button {
-                width: 100%;
-                font-size: 1rem;
-                padding: 0.75rem 0;
-            }
-            .grid {
-                grid-template-columns: 1fr !important;
-            }
-            main {
-                padding: 0.5rem !important;
-            }
-            footer {
-                font-size: 0.9rem;
-                padding: 1rem 0.5rem;
-            }
-        }
     </style>
 </head>
 <body class="antialiased">
     <div class="min-h-screen flex flex-col">
-        <!-- Header Mobile -->
-        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarMobile()"></div>
-        <aside class="sidebar-mobile" id="sidebarMobile">
-            <button class="close-btn" onclick="closeSidebarMobile()">&times;</button>
-            <a href="https://stream-swart-five.vercel.app/">Accueil</a>
-            <a href="https://stream-swart-five.vercel.app/films">Films</a>
-            <a href="https://stream-swart-five.vercel.app/series">Séries</a>
-            <a href="https://stream-swart-five.vercel.app/nouveautes">Nouveautés</a>
-        </aside>
+        <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
-            <div class="header-mobile">
-                <button class="burger-btn" onclick="openSidebarMobile()">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                </button>
-                <span class="logo-mobile"><a href="https://stream-swart-five.vercel.app/">PAFSTREAMING</a></span>
-                <a href="https://t.me/PafStreamingchat" class="telegram-mobile bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">TELEGRAM</a>
+            <div class="flex items-center space-x-4">
+                <span class="text-2xl font-bold text-white uppercase tracking-wider"><a href="https://stream-swart-five.vercel.app/">PafStreaming</a></span>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="https://stream-swart-five.vercel.app/" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Accueil</a>
+                <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
+                <a href="https://stream-swart-five.vercel.app/series" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
+                <a href="https://stream-swart-five.vercel.app/nouveautes" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
+                <!--<a href="#" class="text-neon-blue font-bold border-b-2 border-neon-blue pb-1 rounded-lg p-2">Chaînes TV LIVE</a>-->
+            </nav>
+            <div class="flex items-center space-x-4">
+                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreamingchat">TELEGRAM</a></button>
+                <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>
         </header>
-        <div class="w-full flex justify-center items-center px-4 py-2" style="background: #181e2a;">
-            <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-full max-w-md p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" style="margin: 0 auto;">
-        </div>
-        <script>
-            function openSidebarMobile() {
-                document.getElementById('sidebarMobile').classList.add('open');
-                document.getElementById('sidebarOverlay').classList.add('open');
-            }
-            function closeSidebarMobile() {
-                document.getElementById('sidebarMobile').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('open');
-            }
-        </script>
 
         <!-- Main Section / Hero Section -->
         <main class="flex-grow pt-20"> <!-- Added padding-top to avoid overlap with fixed header -->
-            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg hero-section" style="background-image: url('https://image.tmdb.org/t/p/original/7k2p9VR1N9lPXK7nc8VLffydt03.jpg');">
+            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg" style="background-image: url('https://image.tmdb.org/t/p/original/7k2p9VR1N9lPXK7nc8VLffydt03.jpg');">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
                 <div class="z-0">
                     <h1 class="text-5xl font-bold mb-4">God Save the Tuche</h1>
