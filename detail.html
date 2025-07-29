@@ -149,6 +149,11 @@
 
                 const contentSnap = await getDoc(contentDocRef);
 
+                console.log("Document récupéré:", contentSnap.exists() ? "Oui" : "Non");
+                if (contentSnap.exists()) {
+                    console.log("Données du document:", contentSnap.data());
+                }
+
                 const heroDetailSection = document.getElementById('heroDetailSection');
                 const contentTitleElem = document.getElementById('contentTitle');
                 const contentDescriptionElem = document.getElementById('contentDescription');
