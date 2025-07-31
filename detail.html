@@ -242,6 +242,8 @@
 
         // Function to handle series content
         window.handleSeriesContent = (data) => {
+            console.log('handleSeriesContent called with data:', data);
+            
             const episodesSection = document.getElementById('episodesSection');
             const episodesGrid = document.getElementById('episodesGrid');
             const watchSection = document.getElementById('watchSection');
@@ -255,8 +257,92 @@
             // Clear episodes grid
             episodesGrid.innerHTML = '';
             
-            // Add episodes to grid
-            if (data.episodes && data.episodes.length > 0) {
+            // Try to parse seriesEpisodes if it exists
+            let seriesEpisodesParsed = [];
+            if (data.seriesEpisodes) {
+                try {
+                    seriesEpisodesParsed = JSON.parse(data.seriesEpisodes);
+                    console.log('Parsed seriesEpisodes:', seriesEpisodesParsed);
+                } catch (e) {
+                    console.error("Erreur de parsing JSON pour les épisodes:", e);
+                    seriesEpisodesParsed = [];
+                }
+            }
+            
+            console.log('Episodes data:', data.episodes);
+            console.log('Episodes length:', data.episodes ? data.episodes.length : 'undefined');
+            console.log('SeriesEpisodes parsed:', seriesEpisodesParsed);
+            
+            // Add episodes to grid - try both formats
+            if (seriesEpisodesParsed && seriesEpisodesParsed.length > 0) {
+                // New format with seasons
+                seriesEpisodesParsed.forEach(season => {
+                    const seasonTitle = document.createElement('h3');
+                    seasonTitle.className = 'text-xl font-semibold text-white col-span-full mt-4 mb-2';
+                    seasonTitle.textContent = `Saison ${season.seasonNumber}`;
+                    episodesGrid.appendChild(seasonTitle);
+
+                    if (season.episodes && Array.isArray(season.episodes)) {
+                        season.episodes.forEach(episode => {
+                            const episodeButton = document.createElement('button');
+                            episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-200 text-sm sm:text-base';
+                            episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
+                            
+                            episodeButton.onclick = () => {
+                                // Remove active class from all episode buttons
+                                document.querySelectorAll('#episodesGrid button').forEach(btn => {
+                                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                    btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                                });
+                                
+                                // Add active class to clicked button
+                                episodeButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                                episodeButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                                
+                                currentPlayingEpisodeButton = episodeButton;
+                                
+                                // Update episode info
+                                document.getElementById('episodeInfo').textContent = `Saison ${season.seasonNumber}, Épisode ${episode.episodeNumber}`;
+                                
+                                // Play the episode
+                                window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, episodeButton, episode.vostfrUrl);
+                                
+                                // Show language toggle if VOSTFR is available
+                                if (episode.vostfrUrl) {
+                                    languageToggle.style.display = 'flex';
+                                    
+                                    const vfButton = document.getElementById('vfButton');
+                                    const vostfrButton = document.getElementById('vostfrButton');
+                                    
+                                    vfButton.onclick = () => {
+                                        window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, episodeButton, episode.vostfrUrl);
+                                        vfButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                                        vfButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                                        vostfrButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                        vostfrButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                                    };
+                                    
+                                    vostfrButton.onclick = () => {
+                                        window.playVideo(episode.vostfrUrl, data.title, season.seasonNumber, episode.episodeNumber, episodeButton, episode.videoUrl);
+                                        vostfrButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                                        vostfrButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                                        vfButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                        vfButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                                    };
+                                } else {
+                                    languageToggle.style.display = 'none';
+                                }
+                            };
+                            
+                            episodesGrid.appendChild(episodeButton);
+                        });
+                    }
+                });
+                
+                // No auto-play for series with seasons
+                window.playVideo(null); // Clear player initially
+                
+            } else if (data.episodes && data.episodes.length > 0) {
                 data.episodes.forEach((episode, index) => {
                     const episodeButton = document.createElement('button');
                     episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-200 text-sm sm:text-base';
@@ -279,7 +365,7 @@
                         document.getElementById('episodeInfo').textContent = `Épisode ${index + 1}`;
                         
                         // Play the episode
-                        window.playVideo(episode.videoUrl, data.title, `Épisode ${index + 1}`, episode.description, episode.subtitlesUrl, episode.vostfrUrl);
+                        window.playVideo(episode.videoUrl, data.title, '', `Épisode ${index + 1}`, episodeButton, episode.vostfrUrl);
                         
                         // Show language toggle if VOSTFR is available
                         if (episode.vostfrUrl) {
@@ -289,7 +375,7 @@
                             const vostfrButton = document.getElementById('vostfrButton');
                             
                             vfButton.onclick = () => {
-                                window.playVideo(episode.videoUrl, data.title, `Épisode ${index + 1}`, episode.description, episode.subtitlesUrl, episode.vostfrUrl);
+                                window.playVideo(episode.videoUrl, data.title, '', `Épisode ${index + 1}`, episodeButton, episode.vostfrUrl);
                                 vfButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
                                 vfButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
                                 vostfrButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
@@ -297,7 +383,7 @@
                             };
                             
                             vostfrButton.onclick = () => {
-                                window.playVideo(episode.vostfrUrl, data.title, `Épisode ${index + 1}`, episode.description, episode.subtitlesUrl, episode.videoUrl);
+                                window.playVideo(episode.vostfrUrl, data.title, '', `Épisode ${index + 1}`, episodeButton, episode.videoUrl);
                                 vostfrButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
                                 vostfrButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
                                 vfButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
@@ -318,6 +404,7 @@
                     firstEpisodeButton.click(); // Trigger click on first episode
                 }
             } else {
+                console.log('No episodes found or episodes array is empty');
                 episodesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Aucun épisode disponible.</p>';
             }
         };
@@ -369,16 +456,12 @@
 
             // Automatically play the film if available
             window.playVideo(data.videoUrl, data.title); // Pass film title
-            
-            // Show language toggle if VOSTFR is available
-            if (data.vostfrUrl) {
-                const languageToggle = document.getElementById('languageToggle');
-                languageToggle.style.display = 'flex';
-            }
         };
 
         // Function to load and play a specific video URL (made global)
         window.playVideo = (videoUrl, seriesTitle = '', seasonNumber = '', episodeNumber = '', clickedButton = null, vostfrUrl = null) => {
+            console.log('playVideo called with:', { videoUrl, seriesTitle, seasonNumber, episodeNumber, clickedButton, vostfrUrl });
+            
             const playerContainer = document.getElementById('playerContainer');
             const episodeInfoElem = document.getElementById('episodeInfo');
             const watchSection = document.getElementById('watchSection');
@@ -392,6 +475,7 @@
             playerContainer.innerHTML = ''; // Clear previous player
 
             if (!videoUrl) {
+                console.log('No video URL provided');
                 playerContainer.innerHTML = '<p class="text-gray-400 text-center py-10">Aucune vidéo disponible pour cet épisode.</p>';
                 episodeInfoElem.textContent = ''; // Clear episode info
                 watchSection.style.display = 'none'; // Hide watch section if no video URL
@@ -403,6 +487,9 @@
             if (seriesTitle && seasonNumber && episodeNumber) {
                 episodeInfoElem.textContent = `${seriesTitle} - Saison ${seasonNumber}, Épisode ${episodeNumber}`;
                 watchSection.style.display = 'block';
+            } else if (seriesTitle && episodeNumber) {
+                episodeInfoElem.textContent = `${seriesTitle} - ${episodeNumber}`;
+                watchSection.style.display = 'block';
             } else if (seriesTitle) { // For films
                 episodeInfoElem.textContent = seriesTitle;
                 watchSection.style.display = 'block';
@@ -413,7 +500,7 @@
             }
 
             // Highlight the clicked button for series episodes
-            if (clickedButton && (seriesTitle && seasonNumber && episodeNumber)) {
+            if (clickedButton && (seriesTitle && episodeNumber)) {
                 clickedButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
                 clickedButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 currentPlayingEpisodeButton = clickedButton;
@@ -447,18 +534,22 @@
                     const subtitleToggle = document.createElement('button');
                     subtitleToggle.className = 'absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm z-10 hover:bg-opacity-70 transition-all';
                     subtitleToggle.textContent = 'VOSTFR disponible';
+                    
+                    let isVOSTFR = false;
                     subtitleToggle.onclick = () => {
-                        // Switch to VOSTFR video
-                        video.src = vostfrUrl;
-                        video.load();
-                        subtitleToggle.textContent = 'VF disponible';
-                        subtitleToggle.onclick = () => {
+                        if (isVOSTFR) {
                             // Switch back to VF video
                             video.src = videoUrl;
                             video.load();
                             subtitleToggle.textContent = 'VOSTFR disponible';
-                            subtitleToggle.onclick = subtitleToggle.onclick; // Restore original onclick
-                        };
+                            isVOSTFR = false;
+                        } else {
+                            // Switch to VOSTFR video
+                            video.src = vostfrUrl;
+                            video.load();
+                            subtitleToggle.textContent = 'VF disponible';
+                            isVOSTFR = true;
+                        }
                     };
                     videoPlayerContainer.appendChild(subtitleToggle);
                 }
