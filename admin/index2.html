@@ -212,14 +212,8 @@
                 </div>
                  
                 <div class="mb-6" id="filmVideoUrlDiv">
-                    <label for="contentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien vidéo VF (Version Française) :</label>
-                    <input type="url" id="contentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie-vf.mp4">
-                </div>
-                
-                <div class="mb-6" id="filmVostfrUrlDiv">
-                    <label for="contentVostfrUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien vidéo VOSTFR (Version Originale Sous-Titrée) :</label>
-                    <input type="url" id="contentVostfrUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie-vostfr.mp4 (optionnel)">
-                    <p class="text-xs text-gray-500 mt-1">Vidéo avec sous-titres intégrés. Laissez vide si pas de version VOSTFR disponible.</p>
+                    <label for="contentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien de la vidéo (MP4, YouTube, etc.) :</label>
+                    <input type="url" id="contentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie.mp4">
                 </div>
 
                 <div class="mb-6">
@@ -271,14 +265,8 @@
                 </div>
                 
                 <div class="mb-6" id="editFilmVideoUrlDiv">
-                    <label for="editContentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien vidéo VF (Version Française) :</label>
+                    <label for="editContentVideoUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien de la vidéo (MP4, YouTube, etc.) :</label>
                     <input type="url" id="editContentVideoUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div class="mb-6" id="editFilmVostfrUrlDiv">
-                    <label for="editContentVostfrUrl" class="block text-gray-400 text-sm font-bold mb-2">Lien vidéo VOSTFR (Version Originale Sous-Titrée) :</label>
-                    <input type="url" id="editContentVostfrUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: https://www.example.com/my-movie-vostfr.mp4 (optionnel)">
-                    <p class="text-xs text-gray-500 mt-1">Vidéo avec sous-titres intégrés. Laissez vide si pas de version VOSTFR disponible.</p>
                 </div>
 
                 <div class="mb-6">
@@ -545,7 +533,6 @@
                     // Remplit les champs en fonction du type
                     if (data.type === 'film') {
                         document.getElementById('editContentVideoUrl').value = data.videoUrl || '';
-                        document.getElementById('editContentVostfrUrl').value = data.vostfrUrl || '';
                     } else if (data.type === 'serie') {
                         document.getElementById('editNumberOfSeasons').value = data.seriesEpisodes ? JSON.parse(data.seriesEpisodes).length : 1;
                         // Génère dynamiquement les champs d'épisodes pour la modification
@@ -834,19 +821,17 @@
 
         // Bascule la visibilité des champs spécifiques aux séries en fonction du type de modale (ajout/modification)
         window.toggleSeriesFields = (modalType) => {
-            let currentContentType, filmVideoDiv, filmVostfrDiv, seriesFieldsDivToToggle, seasonsInputToUse, seasonEpisodeContainerToUse;
+            let currentContentType, filmVideoDiv, seriesFieldsDivToToggle, seasonsInputToUse, seasonEpisodeContainerToUse;
 
             if (modalType === 'add') {
                 currentContentType = contentType.value;
                 filmVideoDiv = filmVideoUrlDiv;
-                filmVostfrDiv = filmVostfrUrlDiv;
                 seriesFieldsDivToToggle = seriesFieldsDiv;
                 seasonsInputToUse = numberOfSeasonsInput;
                 seasonEpisodeContainerToUse = seasonEpisodeInputsContainer;
             } else if (modalType === 'edit') {
                 currentContentType = editContentType.value;
                 filmVideoDiv = editFilmVideoUrlDiv;
-                filmVostfrDiv = editFilmVostfrUrlDiv;
                 seriesFieldsDivToToggle = editSeriesFields;
                 seasonsInputToUse = editNumberOfSeasons;
                 seasonEpisodeContainerToUse = editSeasonEpisodeInputsContainer;
@@ -855,13 +840,11 @@
             if (currentContentType === 'serie') {
                 seriesFieldsDivToToggle.classList.remove('hidden');
                 filmVideoDiv.classList.add('hidden'); // Masque l'URL vidéo du film pour les séries
-                filmVostfrDiv.classList.add('hidden'); // Masque l'URL VOSTFR du film pour les séries
                 contentVideoUrl.removeAttribute('required'); // N'est plus requis pour les séries
                 editContentVideoUrl.removeAttribute('required'); // N'est plus requis pour les séries dans la modale de modification
             } else { // 'film'
                 seriesFieldsDivToToggle.classList.add('hidden');
                 filmVideoDiv.classList.remove('hidden'); // Affiche l'URL vidéo du film pour les films
-                filmVostfrDiv.classList.remove('hidden'); // Affiche l'URL VOSTFR du film pour les films
                 contentVideoUrl.setAttribute('required', 'true'); // Requis pour les films
                 editContentVideoUrl.setAttribute('required', 'true'); // Requis pour les films dans la modale de modification
                 // Efface les entrées de saison/épisode lors du changement de type, pour éviter les données périmées
@@ -941,25 +924,17 @@
 
             for (let e = 1; e <= numEpisodes; e++) {
                 const inputGroup = document.createElement('div');
-                inputGroup.className = 'mb-4 p-3 bg-gray-800 rounded-lg';
+                inputGroup.className = 'mb-2';
                 const existingEpisode = existingEpisodes.find(ep => ep.episodeNumber === e);
                 const existingVideoUrl = existingEpisode ? existingEpisode.videoUrl : '';
-                const existingVostfrUrl = existingEpisode ? existingEpisode.vostfrUrl : '';
 
                 inputGroup.innerHTML = `
-                    <h5 class="text-white font-semibold mb-2">Épisode ${e}</h5>
-                    <div class="mb-2">
-                        <label for="${modalType}VideoUrl_S${seasonNumber}E${e}" class="block text-gray-400 text-sm mb-1">Lien vidéo VF :</label>
-                        <input type="url" id="${modalType}VideoUrl_S${seasonNumber}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz.html" value="${existingVideoUrl}">
-                    </div>
-                    <div class="mb-2">
-                        <label for="${modalType}VostfrUrl_S${seasonNumber}E${e}" class="block text-gray-400 text-sm mb-1">Lien vidéo VOSTFR (optionnel) :</label>
-                        <input type="url" id="${modalType}VostfrUrl_S${seasonNumber}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz-vostfr.html" value="${existingVostfrUrl}">
-                    </div>
+                    <label for="${modalType}VideoUrl_S${seasonNumber}E${e}" class="block text-gray-400 text-sm mb-1">S${seasonNumber} E${e} (Lien vidéo) :</label>
+                    <input type="url" id="${modalType}VideoUrl_S${seasonNumber}E${e}" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: https://uqload.net/embed-xyz.html" value="${existingVideoUrl}">
                 `;
                 episodeVideoInputsDiv.appendChild(inputGroup);
             }
-            window.displayMessage(`Champs vidéo VF et VOSTFR générés pour la Saison ${seasonNumber}.`, 'success');
+            window.displayMessage(`Champs vidéo générés pour la Saison ${seasonNumber}.`, 'success');
         };
 
         // Filtre le contenu en fonction de l'entrée de recherche
@@ -991,7 +966,6 @@
             // Gère les URL vidéo en fonction du type
             if (newContent.type === 'film') {
                 newContent.videoUrl = contentVideoUrl.value;
-                newContent.vostfrUrl = contentVostfrUrl.value || null;
             } else if (newContent.type === 'serie') {
                 const seriesEpisodes = [];
                 const numSeasons = parseInt(numberOfSeasonsInput.value, 10);
@@ -1011,13 +985,7 @@
                              return; // Arrête la soumission si des champs sont manquants
                         }
                         const episodeVideoUrl = episodeVideoUrlInput.value;
-                        const episodeVostfrUrlInput = document.getElementById(`addVostfrUrl_S${s}E${e}`);
-                        const episodeVostfrUrl = episodeVostfrUrlInput ? episodeVostfrUrlInput.value : '';
-                        season.episodes.push({ 
-                            episodeNumber: e, 
-                            videoUrl: episodeVideoUrl,
-                            vostfrUrl: episodeVostfrUrl || null
-                        });
+                        season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
                     }
                     seriesEpisodes.push(season);
                 }
@@ -1041,7 +1009,6 @@
 
             if (updatedContent.type === 'film') {
                 updatedContent.videoUrl = editContentVideoUrl.value;
-                updatedContent.vostfrUrl = editContentVostfrUrl.value || null;
                 updatedContent.seriesEpisodes = null; // S'assure que les données de la série sont supprimées si l'on passe au film
             } else if (updatedContent.type === 'serie') {
                 const seriesEpisodes = [];
@@ -1062,13 +1029,7 @@
                             return; // Arrête la soumission si des champs sont manquants
                         }
                         const episodeVideoUrl = episodeVideoUrlInput.value;
-                        const episodeVostfrUrlInput = document.getElementById(`editVostfrUrl_S${s}E${e}`);
-                        const episodeVostfrUrl = episodeVostfrUrlInput ? episodeVostfrUrlInput.value : '';
-                        season.episodes.push({ 
-                            episodeNumber: e, 
-                            videoUrl: episodeVideoUrl,
-                            vostfrUrl: episodeVostfrUrl || null
-                        });
+                        season.episodes.push({ episodeNumber: e, videoUrl: episodeVideoUrl });
                     }
                     seriesEpisodes.push(season);
                 }
