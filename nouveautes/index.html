@@ -32,6 +32,8 @@
         window.currentPage = 1;
         window.itemsPerPage = 40; // Display 40 items per page
         window.allContent = []; // To store all fetched new releases
+        window.favorites = []; // To store user favorites
+        window.showingFavorites = false; // To track if we're showing favorites
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
@@ -60,6 +62,106 @@
 
         window.addEventListener('load', initFirebase);
 
+        // Add event listener for favorites button
+        document.addEventListener('DOMContentLoaded', () => {
+            const favoritesButton = document.getElementById('favoritesButton');
+            if (favoritesButton) {
+                favoritesButton.addEventListener('click', window.toggleFavoritesView);
+            }
+        });
+
+        // Function to load user favorites
+        window.loadFavorites = async () => {
+            try {
+                const storedFavorites = localStorage.getItem('pafstreaming_favorites');
+                window.favorites = storedFavorites ? JSON.parse(storedFavorites) : [];
+                console.log(`Favoris chargés: ${window.favorites.length} favoris trouvés`);
+            } catch (error) {
+                console.error("Erreur lors du chargement des favoris:", error);
+                window.favorites = [];
+            }
+        };
+
+        // Function to toggle favorites view
+        window.toggleFavoritesView = () => {
+            window.showingFavorites = !window.showingFavorites;
+            const favoritesButton = document.getElementById('favoritesButton');
+            const nouveautesLink = document.querySelector('a[href="https://stream-swart-five.vercel.app/nouveautes"]');
+            
+            if (window.showingFavorites) {
+                // Remove active class from Nouveautés and add to Favoris
+                nouveautesLink.classList.remove('active-link');
+                favoritesButton.classList.add('text-neon-blue', 'font-bold', 'active-link');
+                window.displayFavoriteContent();
+            } else {
+                // Remove active class from Favoris and add to Nouveautés
+                favoritesButton.classList.remove('text-neon-blue', 'font-bold', 'active-link');
+                nouveautesLink.classList.add('active-link');
+                window.displayContentCards(window.allContent);
+            }
+        };
+
+        // Function to display favorite content
+        window.displayFavoriteContent = () => {
+            if (window.favorites.length === 0) {
+                const contentGrid = document.getElementById('contentGrid');
+                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun favori pour le moment.</p>`;
+                return;
+            }
+            
+            // Filter content to show only favorites
+            const favoriteContent = window.allContent.filter(content => window.favorites.includes(content.id));
+            
+            window.displayContentCards(favoriteContent);
+        };
+
+        // Function to add/remove from favorites
+        window.toggleFavorite = async (contentId) => {
+            try {
+                const index = window.favorites.indexOf(contentId);
+                
+                if (index > -1) {
+                    // Remove from favorites
+                    window.favorites.splice(index, 1);
+                    console.log(`Retiré des favoris: ${contentId}`);
+                } else {
+                    // Add to favorites
+                    window.favorites.push(contentId);
+                    console.log(`Ajouté aux favoris: ${contentId}`);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('pafstreaming_favorites', JSON.stringify(window.favorites));
+                
+                // Update display if showing favorites
+                if (window.showingFavorites) {
+                    window.displayFavoriteContent();
+                } else {
+                    // Update the specific card's favorite button
+                    const card = document.querySelector(`[data-id="${contentId}"]`);
+                    if (card) {
+                        const favoriteButton = card.querySelector('svg');
+                        if (favoriteButton) {
+                            if (window.isFavorite(contentId)) {
+                                favoriteButton.classList.add('fill-red-500');
+                                favoriteButton.classList.remove('fill-none');
+                            } else {
+                                favoriteButton.classList.remove('fill-red-500');
+                                favoriteButton.classList.add('fill-none');
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Erreur lors de la modification des favoris:", error);
+            }
+        };
+
+        // Function to check if content is favorite
+        window.isFavorite = (contentId) => {
+            return window.favorites.includes(contentId);
+        };
+
         // Function to set up real-time content listener for the "Nouveautés" page
         window.setupContentListener = () => {
             if (!window.db || !window.userId) {
@@ -78,9 +180,21 @@
                 snapshot.forEach((doc) => {
                     window.allContent.push({ id: doc.id, ...doc.data() });
                 });
-                window.displayContentCards(window.allContent); // Display content for the current page
+                console.log(`Récupération réussie: ${window.allContent.length} documents trouvés`);
+                
+                // Load favorites after content is loaded
+                window.loadFavorites().then(() => {
+                    if (window.showingFavorites) {
+                        window.displayFavoriteContent();
+                    } else {
+                        window.displayContentCards(window.allContent);
+                    }
+                });
             }, (error) => {
                 console.error("Erreur lors de la récupération des nouveautés:", error);
+                console.error("Code d'erreur:", error.code);
+                console.error("Message d'erreur:", error.message);
+                console.error("Détails:", error);
             });
         };
 
@@ -126,10 +240,19 @@
                 card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A');
                 card.onclick = () => window.navigateToDetail(content.id);
 
+                const isFav = window.isFavorite(content.id);
                 card.innerHTML = `
-                    <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg" loading="lazy">
+                    <div class="relative">
+                        <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg" loading="lazy">
+                        <button class="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all duration-200" 
+                                onclick="event.stopPropagation(); window.toggleFavorite('${content.id}')">
+                            <svg class="w-5 h-5 ${isFav ? 'fill-red-500' : 'fill-none'}" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <div class="p-4">
-                        <h3 class="text-xl font-semibold text-white truncate line-clamp-2">${content.title}</h3>
+                        <h3 class="text-base sm:text-lg font-semibold text-white truncate line-clamp-2">${content.title}</h3>
                         <p class="text-gray-400 text-sm">${content.type === 'serie' ? 'Série' : 'Film'}</p>
                     </div>
                 `;
@@ -259,6 +382,12 @@
                 <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="https://stream-swart-five.vercel.app/series" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
                 <a href="https://stream-swart-five.vercel.app/nouveautes" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Nouveautés</a>
+                <button id="favoritesButton" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 flex items-center space-x-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                    </svg>
+                    <span>Favoris</span>
+                </button>
             </nav>
             <div class="flex items-center space-x-4">
                 <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">

@@ -71,6 +71,16 @@
             if (favoritesButton) {
                 favoritesButton.addEventListener('click', window.toggleFavoritesView);
             }
+            
+            // Check if we should show favorites from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('favorites') === 'true') {
+                // Show favorites view automatically
+                window.showingFavorites = true;
+                const accueilLink = document.querySelector('a[href="https://stream-swart-five.vercel.app/"]');
+                accueilLink.classList.remove('active-link');
+                favoritesButton.classList.add('text-neon-blue', 'font-bold', 'active-link');
+            }
         });
 
         // Function to load user favorites
@@ -89,12 +99,17 @@
         window.toggleFavoritesView = () => {
             window.showingFavorites = !window.showingFavorites;
             const favoritesButton = document.getElementById('favoritesButton');
+            const accueilLink = document.querySelector('a[href="https://stream-swart-five.vercel.app/"]');
             
             if (window.showingFavorites) {
-                favoritesButton.classList.add('text-neon-blue', 'font-bold');
+                // Remove active class from Accueil and add to Favoris
+                accueilLink.classList.remove('active-link');
+                favoritesButton.classList.add('text-neon-blue', 'font-bold', 'active-link');
                 window.displayFavoriteContent();
             } else {
-                favoritesButton.classList.remove('text-neon-blue', 'font-bold');
+                // Remove active class from Favoris and add to Accueil
+                favoritesButton.classList.remove('text-neon-blue', 'font-bold', 'active-link');
+                accueilLink.classList.add('active-link');
                 window.displayContentCards(window.allContent);
             }
         };
