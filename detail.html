@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="detailPageTitle">Détails - PafStreaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -61,6 +61,32 @@
 
         window.addEventListener('load', initFirebase);
 
+        // Mobile menu functionality
+        window.toggleMobileMenu = () => {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const hamburger = document.getElementById('hamburger');
+            const isOpen = mobileMenu.classList.contains('translate-x-0');
+            
+            if (isOpen) {
+                mobileMenu.classList.remove('translate-x-0');
+                mobileMenu.classList.add('-translate-x-full');
+                hamburger.classList.remove('open');
+            } else {
+                mobileMenu.classList.remove('-translate-x-full');
+                mobileMenu.classList.add('translate-x-0');
+                hamburger.classList.add('open');
+            }
+        };
+
+        // Close mobile menu when clicking outside
+        window.closeMobileMenu = () => {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const hamburger = document.getElementById('hamburger');
+            mobileMenu.classList.remove('translate-x-0');
+            mobileMenu.classList.add('-translate-x-full');
+            hamburger.classList.remove('open');
+        };
+
         // Add event listener for favorites button
         document.addEventListener('DOMContentLoaded', () => {
             const favoritesButton = document.getElementById('favoritesButton');
@@ -70,6 +96,11 @@
                     window.location.href = 'https://stream-swart-five.vercel.app/?favorites=true';
                 });
             }
+
+            // Close mobile menu when clicking on a link
+            document.querySelectorAll('#mobileMenu a').forEach(link => {
+                link.addEventListener('click', window.closeMobileMenu);
+            });
         });
 
         // Function to check if content is in favorites
@@ -98,67 +129,252 @@
                     favorites.splice(index, 1);
                     isFavorite = false;
                     updateFavoriteButton(false);
-                    window.displayMessage("Retiré des favoris", 'info');
+                    window.showMessage('Retiré des favoris', 'success');
                 } else {
                     // Add to favorites
                     favorites.push(currentContentId);
                     isFavorite = true;
                     updateFavoriteButton(true);
-                    window.displayMessage("Ajouté aux favoris", 'success');
+                    window.showMessage('Ajouté aux favoris', 'success');
                 }
                 
                 // Save to localStorage
                 localStorage.setItem('pafstreaming_favorites', JSON.stringify(favorites));
             } catch (error) {
                 console.error("Erreur lors de la modification des favoris:", error);
-                window.displayMessage("Erreur lors de la modification des favoris", 'error');
+                window.showMessage('Erreur lors de la modification des favoris', 'error');
             }
         };
 
         // Function to update favorite button appearance
-        window.updateFavoriteButton = (favorite) => {
-            const favoriteButton = document.getElementById('favoriteButton');
+        const updateFavoriteButton = (isFav) => {
             const favoriteIcon = document.getElementById('favoriteIcon');
             const favoriteText = document.getElementById('favoriteText');
             
-            if (favorite) {
-                favoriteButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                favoriteButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            if (isFav) {
+                favoriteIcon.classList.add('fill-red-500');
                 favoriteIcon.classList.remove('fill-none');
-                favoriteIcon.classList.add('fill-current');
                 favoriteText.textContent = 'Retirer des favoris';
             } else {
-                favoriteButton.classList.remove('bg-red-600', 'hover:bg-red-700');
-                favoriteButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
-                favoriteIcon.classList.remove('fill-current');
+                favoriteIcon.classList.remove('fill-red-500');
                 favoriteIcon.classList.add('fill-none');
                 favoriteText.textContent = 'Ajouter aux favoris';
             }
         };
 
-        // Function to display messages
-        window.displayMessage = (message, type = 'info') => {
+        // Function to show messages
+        window.showMessage = (message, type = 'info') => {
             const messageBox = document.getElementById('messageBox');
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600'
+            };
+            
+            messageBox.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300 ${colors[type]} text-white`;
             messageBox.textContent = message;
-            messageBox.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
-            
-            switch (type) {
-                case 'success':
-                    messageBox.classList.add('bg-green-600', 'text-white');
-                    break;
-                case 'error':
-                    messageBox.classList.add('bg-red-600', 'text-white');
-                    break;
-                case 'info':
-                default:
-                    messageBox.classList.add('bg-blue-600', 'text-white');
-                    break;
-            }
-            
             messageBox.style.opacity = '1';
+            
             setTimeout(() => {
                 messageBox.style.opacity = '0';
             }, 3000);
+        };
+
+        // Function to load content details
+        window.loadContentDetails = async () => {
+            try {
+                // Get content ID from URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const contentId = urlParams.get('id');
+                
+                if (!contentId) {
+                    window.displayNotFound();
+                    return;
+                }
+
+                currentContentId = contentId; // Set global currentContentId
+
+                // Check favorite status
+                isFavorite = await window.checkFavoriteStatus(contentId);
+                updateFavoriteButton(isFavorite);
+
+                // Get content document from Firestore
+                const contentDoc = doc(window.db, `all_films_series`, contentId);
+                const contentSnapshot = await getDoc(contentDoc);
+
+                if (contentSnapshot.exists()) {
+                    const data = contentSnapshot.data();
+                    
+                    // Update page title
+                    document.getElementById('detailPageTitle').textContent = `${data.title} - PafStreaming`;
+                    
+                    // Update hero section
+                    document.getElementById('contentTitle').textContent = data.title;
+                    document.getElementById('contentDescription').textContent = data.description || 'Aucune description disponible.';
+                    
+                    // Update hero background image
+                    const heroSection = document.getElementById('heroDetailSection');
+                    if (data.posterUrl) {
+                        heroSection.style.backgroundImage = `url('${data.posterUrl}')`;
+                    }
+                    
+                    // Set up favorite button
+                    const favoriteButton = document.getElementById('favoriteButton');
+                    favoriteButton.onclick = window.toggleFavorite;
+                    
+                    // Handle different content types
+                    if (data.type === 'serie') {
+                        // Handle series
+                        window.handleSeriesContent(data);
+                    } else {
+                        // Handle films
+                        window.handleFilmContent(data);
+                    }
+                    
+                } else {
+                    window.displayNotFound(); // Call global displayNotFound
+                }
+            } catch (error) {
+                console.error("Erreur lors du chargement des détails du contenu:", error);
+                window.displayNotFound(); // Call global displayNotFound
+            }
+        };
+
+        // Function to handle series content
+        window.handleSeriesContent = (data) => {
+            const episodesSection = document.getElementById('episodesSection');
+            const episodesGrid = document.getElementById('episodesGrid');
+            const watchSection = document.getElementById('watchSection');
+            const playMainContentButton = document.getElementById('playMainContentButton');
+            const languageToggle = document.getElementById('languageToggle');
+            
+            // Show episodes section
+            episodesSection.style.display = 'block';
+            watchSection.style.display = 'block';
+            
+            // Clear episodes grid
+            episodesGrid.innerHTML = '';
+            
+            // Add episodes to grid
+            if (data.episodes && data.episodes.length > 0) {
+                data.episodes.forEach((episode, index) => {
+                    const episodeButton = document.createElement('button');
+                    episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-200 text-sm sm:text-base';
+                    episodeButton.textContent = `Épisode ${index + 1}`;
+                    
+                    episodeButton.onclick = () => {
+                        // Remove active class from all episode buttons
+                        document.querySelectorAll('#episodesGrid button').forEach(btn => {
+                            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                            btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                        });
+                        
+                        // Add active class to clicked button
+                        episodeButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        episodeButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        
+                        currentPlayingEpisodeButton = episodeButton;
+                        
+                        // Update episode info
+                        document.getElementById('episodeInfo').textContent = `Épisode ${index + 1}`;
+                        
+                        // Play the episode
+                        window.playVideo(episode.videoUrl, data.title, `Épisode ${index + 1}`, episode.description, episode.subtitlesUrl, episode.vostfrUrl);
+                        
+                        // Show language toggle if VOSTFR is available
+                        if (episode.vostfrUrl) {
+                            languageToggle.style.display = 'flex';
+                            
+                            const vfButton = document.getElementById('vfButton');
+                            const vostfrButton = document.getElementById('vostfrButton');
+                            
+                            vfButton.onclick = () => {
+                                window.playVideo(episode.videoUrl, data.title, `Épisode ${index + 1}`, episode.description, episode.subtitlesUrl, episode.vostfrUrl);
+                                vfButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                                vfButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                                vostfrButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                vostfrButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                            };
+                            
+                            vostfrButton.onclick = () => {
+                                window.playVideo(episode.vostfrUrl, data.title, `Épisode ${index + 1}`, episode.description, episode.subtitlesUrl, episode.videoUrl);
+                                vostfrButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                                vostfrButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                                vfButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                vfButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                            };
+                        } else {
+                            languageToggle.style.display = 'none';
+                        }
+                    };
+                    
+                    episodesGrid.appendChild(episodeButton);
+                });
+                
+                // Auto-play first episode
+                if (data.episodes.length > 0) {
+                    const firstEpisode = data.episodes[0];
+                    const firstEpisodeButton = episodesGrid.querySelector('button');
+                    firstEpisodeButton.click(); // Trigger click on first episode
+                }
+            } else {
+                episodesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Aucun épisode disponible.</p>';
+            }
+        };
+
+        // Function to handle film content
+        window.handleFilmContent = (data) => {
+            const episodesSection = document.getElementById('episodesSection');
+            const watchSection = document.getElementById('watchSection');
+            const playMainContentButton = document.getElementById('playMainContentButton');
+            const languageToggle = document.getElementById('languageToggle');
+            
+            // Hide episodes section for films
+            episodesSection.style.display = 'none';
+            watchSection.style.display = 'block';
+            
+            // Clear episode info
+            document.getElementById('episodeInfo').textContent = '';
+            
+            // Set up language toggle for films
+            const vfButton = document.getElementById('vfButton');
+            const vostfrButton = document.getElementById('vostfrButton');
+            
+            // Show language toggle if VOSTFR is available
+            if (data.vostfrUrl) {
+                languageToggle.style.display = 'flex';
+                
+                vfButton.onclick = () => {
+                    window.playVideo(data.videoUrl, data.title);
+                    vfButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    vfButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                    vostfrButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    vostfrButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                };
+                
+                vostfrButton.onclick = () => {
+                    window.playVideo(data.vostfrUrl, data.title, '', '', null, data.videoUrl);
+                    vostfrButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    vostfrButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                    vfButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    vfButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                };
+            }
+            
+            // Set the onclick for the main play button for films
+            playMainContentButton.onclick = () => {
+                // Start with VF
+                window.playVideo(data.videoUrl, data.title);
+            };
+
+            // Automatically play the film if available
+            window.playVideo(data.videoUrl, data.title); // Pass film title
+            
+            // Show language toggle if VOSTFR is available
+            if (data.vostfrUrl) {
+                const languageToggle = document.getElementById('languageToggle');
+                languageToggle.style.display = 'flex';
+            }
         };
 
         // Function to load and play a specific video URL (made global)
@@ -248,201 +464,8 @@
                 }
                 
                 videoPlayerContainer.appendChild(video);
-                videoPlayerContainer.appendChild(subtitleToggle);
                 playerContainer.appendChild(videoPlayerContainer);
                 video.load();
-            }
-        };
-
-
-        // Function to load content details from Firestore (made global)
-        window.loadContentDetails = async () => {
-            const params = new URLSearchParams(window.location.search);
-            const contentId = params.get('id');
-
-            if (!contentId) {
-                window.displayNotFound(); // Call global displayNotFound
-                return;
-            }
-
-            // Set current content ID for favorites
-            currentContentId = contentId;
-
-            if (!window.db || !window.userId) {
-                console.warn("Firestore ou userId non prêts pour le chargement du contenu. Réessai...");
-                setTimeout(window.loadContentDetails, 500); // Retry after 500ms, call global loadContentDetails
-                return;
-            }
-
-            try {
-                // Path for ALL public data
-                const contentDocRef = doc(window.db, `all_films_series`, contentId); // MODIFIED HERE
-
-                const contentSnap = await getDoc(contentDocRef);
-
-                console.log("Document récupéré:", contentSnap.exists() ? "Oui" : "Non");
-                if (contentSnap.exists()) {
-                    console.log("Données du document:", contentSnap.data());
-                }
-
-                const heroDetailSection = document.getElementById('heroDetailSection');
-                const contentTitleElem = document.getElementById('contentTitle');
-                const contentDescriptionElem = document.getElementById('contentDescription');
-                const playMainContentButton = document.getElementById('playMainContentButton'); // The "Lecture" button
-                const episodesSection = document.getElementById('episodesSection');
-                const episodesGrid = document.getElementById('episodesGrid');
-                const watchSection = document.getElementById('watchSection'); // Get the watch section
-                const episodeInfoElem = document.getElementById('episodeInfo'); // Get the episode info element
-
-                if (contentSnap.exists()) {
-                    const data = contentSnap.data();
-                    document.getElementById('detailPageTitle').textContent = data.title + ' - PafStreaming';
-                    contentTitleElem.textContent = data.title;
-                    contentDescriptionElem.textContent = data.description;
-                    heroDetailSection.style.backgroundImage = `url('${data.posterUrl || 'https://placehold.co/1200x500/000000/FFFFFF?text=Affiche+Manquante'}')`;
-
-                    // Initialize favorites
-                    isFavorite = await window.checkFavoriteStatus(contentId);
-                    window.updateFavoriteButton(isFavorite);
-                    
-                    // Add click event to favorite button
-                    const favoriteButton = document.getElementById('favoriteButton');
-                    favoriteButton.onclick = window.toggleFavorite;
-
-                    // Handle series episodes or single film video
-                    if (data.type === 'serie' && data.seriesEpisodes) {
-                        episodesSection.style.display = 'block'; // Show the section
-                        watchSection.style.display = 'none'; // Hide the watch section initially for series
-                        episodesGrid.innerHTML = ''; // Clear previous buttons
-                        playMainContentButton.style.display = 'none'; // Hide main play button for series
-                        episodeInfoElem.textContent = ''; // Clear episode info initially for series
-
-                        let seriesEpisodesParsed;
-                        try {
-                            seriesEpisodesParsed = JSON.parse(data.seriesEpisodes);
-                        } catch (e) {
-                            console.error("Erreur de parsing JSON pour les épisodes:", e);
-                            seriesEpisodesParsed = [];
-                        }
-
-                        if (seriesEpisodesParsed.length > 0) {
-                            // Check if any episode has VOSTFR available
-                            const hasVostfr = seriesEpisodesParsed.some(season => 
-                                season.episodes && season.episodes.some(episode => episode.vostfrUrl)
-                            );
-                            
-                            if (hasVostfr) {
-                                const languageToggle = document.getElementById('languageToggle');
-                                languageToggle.style.display = 'flex';
-                            }
-                            
-                            seriesEpisodesParsed.forEach(season => {
-                                const seasonTitle = document.createElement('h3');
-                                seasonTitle.className = 'text-xl font-semibold text-white col-span-full mt-4 mb-2';
-                                seasonTitle.textContent = `Saison ${season.seasonNumber}`;
-                                episodesGrid.appendChild(seasonTitle);
-
-                                if (season.episodes && Array.isArray(season.episodes)) {
-                                    season.episodes.forEach(episode => {
-                                        const episodeButton = document.createElement('button');
-                                        episodeButton.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200';
-                                        episodeButton.textContent = `Épisode ${episode.episodeNumber}`;
-                                        // Pass seriesTitle, seasonNumber, episodeNumber and the button itself to playVideo
-                                        episodeButton.onclick = (event) => {
-                                            // Set up VF/VOSTFR buttons for this episode
-                                            const languageToggle = document.getElementById('languageToggle');
-                                            const vfButton = document.getElementById('vfButton');
-                                            const vostfrButton = document.getElementById('vostfrButton');
-                                            
-                                            // Show language toggle if VOSTFR is available
-                                            if (episode.vostfrUrl) {
-                                                languageToggle.style.display = 'flex';
-                                                
-                                                vfButton.onclick = () => {
-                                                    window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target);
-                                                    vfButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                                                    vfButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                                                    vostfrButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                                                    vostfrButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
-                                                };
-                                                
-                                                vostfrButton.onclick = () => {
-                                                    window.playVideo(episode.vostfrUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target, episode.videoUrl);
-                                                    vostfrButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                                                    vostfrButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                                                    vfButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                                                    vfButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
-                                                };
-                                            }
-                                            
-                                            // Start with VF
-                                            window.playVideo(episode.videoUrl, data.title, season.seasonNumber, episode.episodeNumber, event.target);
-                                        };
-                                        episodesGrid.appendChild(episodeButton);
-                                    });
-                                }
-                            });
-                            // No automatic playback of the first episode for series
-                            window.playVideo(null); // Clear player, displaying "Aucune vidéo disponible pour cet épisode." and hiding watch section
-                        } else {
-                             episodesGrid.innerHTML = '<p class="col-span-full text-gray-400 text-center">Aucun épisode configuré pour cette série.</p>';
-                             window.playVideo(null); // Clear player and hide watch section
-                        }
-
-                    } else { // It's a film or series without episode data
-                        episodesSection.style.display = 'none'; // Hide episodes section
-                        playMainContentButton.style.display = ''; // Show main play button for films
-                        watchSection.style.display = 'block'; // Ensure watch section is visible for films
-                        episodeInfoElem.textContent = data.title; // Display film title
-
-                        // Set up VF/VOSTFR buttons for films
-                        const languageToggle = document.getElementById('languageToggle');
-                        const vfButton = document.getElementById('vfButton');
-                        const vostfrButton = document.getElementById('vostfrButton');
-                        
-                        // Show language toggle if VOSTFR is available
-                        if (data.vostfrUrl) {
-                            languageToggle.style.display = 'flex';
-                            
-                            vfButton.onclick = () => {
-                                window.playVideo(data.videoUrl, data.title);
-                                vfButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                                vfButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                                vostfrButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                                vostfrButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
-                            };
-                            
-                            vostfrButton.onclick = () => {
-                                window.playVideo(data.vostfrUrl, data.title, '', '', null, data.videoUrl);
-                                vostfrButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                                vostfrButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                                vfButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                                vfButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
-                            };
-                        }
-                        
-                        // Set the onclick for the main play button for films
-                        playMainContentButton.onclick = () => {
-                            // Start with VF
-                            window.playVideo(data.videoUrl, data.title);
-                        };
-
-                        // Automatically play the film if available
-                        window.playVideo(data.videoUrl, data.title); // Pass film title
-                        
-                        // Show language toggle if VOSTFR is available
-                        if (data.vostfrUrl) {
-                            const languageToggle = document.getElementById('languageToggle');
-                            languageToggle.style.display = 'flex';
-                        }
-                    }
-
-                } else {
-                    window.displayNotFound(); // Call global displayNotFound
-                }
-            } catch (error) {
-                console.error("Erreur lors du chargement des détails du contenu:", error);
-                window.displayNotFound(); // Call global displayNotFound
             }
         };
 
@@ -469,6 +492,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #1a202c; /* Dark background color */
             color: #e2e8f0; /* Light text color */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         }
         .text-neon-blue {
             color: #4dc0b5; /* A color resembling neon blue */
@@ -531,6 +555,41 @@
         .language-toggle button.active:hover {
             background-color: #1d4ed8;
         }
+        
+        /* Mobile menu styles */
+        .mobile-menu {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        /* Hamburger menu animation */
+        .hamburger {
+            transition: all 0.3s ease-in-out;
+        }
+        .hamburger.open .line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger.open .line:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.open .line:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+        
+        /* Touch-friendly button sizes */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        /* Optimize for mobile performance */
+        @media (max-width: 768px) {
+            .content-card {
+                transform: none;
+            }
+            .content-card:active {
+                transform: scale(0.98);
+            }
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -538,11 +597,16 @@
         
         <!-- Message Box for notifications -->
         <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300" style="opacity: 0;"></div>
+        
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
-                <span class="text-2xl font-bold text-white uppercase tracking-wider"><a href="https://stream-swart-five.vercel.app/">PafStreaming</a></span>
+                <span class="text-xl sm:text-2xl font-bold text-white uppercase tracking-wider">
+                    <a href="https://stream-swart-five.vercel.app/">PafStreaming</a>
+                </span>
             </div>
-            <nav class="hidden md:flex space-x-6">
+            
+            <!-- Desktop Navigation -->
+            <nav class="hidden lg:flex space-x-6">
                 <a href="https://stream-swart-five.vercel.app" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
                 <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="https://stream-swart-five.vercel.app/series" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Séries</a>
@@ -554,23 +618,63 @@
                     <span>Favoris</span>
                 </button>
             </nav>
-            <div class="flex items-center space-x-4">
-                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreaming">TELEGRAM</a></button>
-                <button class="text-gray-300 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
+            
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <!-- Telegram Button -->
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg shadow-md transition-colors duration-200 text-xs sm:text-sm">
+                    <a href="https://t.me/PafStreaming">TELEGRAM</a>
+                </button>
+                
+                <!-- Mobile Menu Button -->
+                <button id="hamburger" class="lg:hidden text-gray-300 hover:text-white touch-target" onclick="window.toggleMobileMenu()">
+                    <div class="line w-6 h-0.5 bg-current mb-1"></div>
+                    <div class="line w-6 h-0.5 bg-current mb-1"></div>
+                    <div class="line w-6 h-0.5 bg-current"></div>
+                </button>
             </div>
         </header>
 
-        <main class="flex-grow pt-20 p-8">
-            <section class="relative bg-cover bg-center h-96 flex items-end p-8 rounded-lg shadow-lg mb-8" id="heroDetailSection">
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="lg:hidden fixed inset-0 z-20 bg-black bg-opacity-50 mobile-menu -translate-x-full">
+            <div class="bg-gray-900 w-80 h-full shadow-xl">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold text-white">Menu</span>
+                        <button onclick="window.closeMobileMenu()" class="text-gray-300 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Mobile Navigation -->
+                <nav class="p-4 space-y-4">
+                    <a href="https://stream-swart-five.vercel.app/" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Accueil</a>
+                    <a href="https://stream-swart-five.vercel.app/films" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Films</a>
+                    <a href="https://stream-swart-five.vercel.app/series" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Séries</a>
+                    <a href="https://stream-swart-five.vercel.app/nouveautes" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Nouveautés</a>
+                    <button id="mobileFavoritesButton" class="w-full text-left text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                        <span>Favoris</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <main class="flex-grow pt-20 p-4 sm:p-8">
+            <section class="relative bg-cover bg-center h-64 sm:h-80 md:h-96 flex items-end p-4 sm:p-8 rounded-lg shadow-lg mb-4 sm:mb-8" id="heroDetailSection">
                 <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
                 <div class="z-0">
-                    <h1 class="text-5xl font-bold mb-4" id="contentTitle">Chargement...</h1>
-                    <p class="text-lg text-gray-300 max-w-xl mb-6" id="contentDescription">
+                    <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-4" id="contentTitle">Chargement...</h1>
+                    <p class="text-sm sm:text-base md:text-lg text-gray-300 max-w-xl mb-4 sm:mb-6 hidden sm:block" id="contentDescription">
                         Chargement de la description...
                     </p>
-                    <div class="flex space-x-4" id="playButtonContainer">
-                        <button id="playMainContentButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200">Lecture</button>
-                        <button id="favoriteButton" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-colors duration-200 flex items-center space-x-2">
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4" id="playButtonContainer">
+                        <button id="playMainContentButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg transition-colors duration-200 text-sm sm:text-base">Lecture</button>
+                        <button id="favoriteButton" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg transition-colors duration-200 flex items-center space-x-2 text-sm sm:text-base">
                             <svg id="favoriteIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                             </svg>
@@ -580,16 +684,16 @@
                 </div>
             </section>
 
-            <section id="watchSection" class="mb-8"> 
-                <h2 class="text-3xl font-bold mb-2 text-white">Regarder</h2>
-                <div id="episodeInfo" class="text-gray-300 text-xl mb-4"></div>
+            <section id="watchSection" class="mb-4 sm:mb-8"> 
+                <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-white">Regarder</h2>
+                <div id="episodeInfo" class="text-gray-300 text-lg sm:text-xl mb-4"></div>
                 
                 <!-- Audio/Subtitle Language Toggle -->
-                <div id="languageToggle" class="mb-4 flex space-x-4" style="display: none;">
-                    <button id="vfButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                <div id="languageToggle" class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4" style="display: none;">
+                    <button id="vfButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 text-sm sm:text-base">
                         VF
                     </button>
-                    <button id="vostfrButton" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                    <button id="vostfrButton" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 text-sm sm:text-base">
                         VOSTFR
                     </button>
                 </div>
@@ -599,17 +703,17 @@
                 </div>
             </section>
 
-            <section id="episodesSection" class="mb-8" style="display: none;">
-                <h2 class="text-3xl font-bold mb-4 text-white">Épisodes</h2>
-                <div id="episodesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <section id="episodesSection" class="mb-4 sm:mb-8" style="display: none;">
+                <h2 class="text-2xl sm:text-3xl font-bold mb-4 text-white">Épisodes</h2>
+                <div id="episodesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                     </div>
             </section>
 
             </main>
 
-        <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
-            <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
-            <p>Ce site n'héberge auccun films et séries.</p>
+        <footer class="bg-gray-900 p-4 sm:p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
+            <p class="text-sm sm:text-base">&copy; 2025 PafStreaming. Tous droits réservés.</p>
+            <p class="text-xs sm:text-sm">Ce site n'héberge auccun films et séries.</p>
         </footer>
     </div>
 </body>
