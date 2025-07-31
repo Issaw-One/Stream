@@ -212,9 +212,9 @@
             // Path for all content, ordered by date (newest first)
             const contentCollectionRef = collection(window.db, `all_films_series`);
             
-            // For now, load all content without ordering to see if there's any data
-            console.log("Tentative de chargement de tous les documents...");
-            const q = query(contentCollectionRef, limit(100));
+            // Load content ordered by dateAdded field (newest first)
+            console.log("Tentative de chargement des documents triés par date d'ajout...");
+            const q = query(contentCollectionRef, orderBy('dateAdded', 'desc'), limit(100));
 
             onSnapshot(q, (snapshot) => {
                 window.allContent = []; // Clear previous content
@@ -225,7 +225,15 @@
                     console.log(`Document ${doc.id}:`, data);
                     window.allContent.push({ id: doc.id, ...data });
                 });
-                console.log(`Récupération réussie: ${window.allContent.length} nouveautés trouvées`);
+                
+                // Sort content by dateAdded (newest first) as fallback
+                window.allContent.sort((a, b) => {
+                    const dateA = a.dateAdded ? new Date(a.dateAdded) : new Date(0);
+                    const dateB = b.dateAdded ? new Date(b.dateAdded) : new Date(0);
+                    return dateB - dateA; // Descending order (newest first)
+                });
+                
+                console.log(`Récupération réussie: ${window.allContent.length} nouveautés trouvées, triées par date d'ajout`);
                 
                 // Load favorites after content is loaded
                 window.loadFavorites().then(() => {
