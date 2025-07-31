@@ -39,11 +39,15 @@
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
             try {
+                console.log("Initialisation de Firebase...");
                 window.app = initializeApp(firebaseConfig);
                 window.db = getFirestore(window.app);
                 window.auth = getAuth(window.app);
+                console.log("Firebase initialisé avec succès");
 
+                console.log("Authentification anonyme...");
                 await signInAnonymously(window.auth);
+                console.log("Authentification anonyme réussie");
 
                 onAuthStateChanged(window.auth, (user) => {
                     if (user) {
@@ -196,6 +200,10 @@
 
         // Function to set up real-time content listener for nouveautés
         window.setupContentListener = () => {
+            console.log("setupContentListener appelé");
+            console.log("window.db:", window.db);
+            console.log("window.userId:", window.userId);
+            
             if (!window.db || !window.userId) {
                 console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
                 return;
@@ -203,7 +211,15 @@
 
             // Path for all content, ordered by date (newest first)
             const contentCollectionRef = collection(window.db, `all_films_series`);
-            const q = query(contentCollectionRef, orderBy("dateAdded", "desc"), limit(100));
+            
+            // Try to order by dateAdded, but fallback to no ordering if field doesn't exist
+            let q;
+            try {
+                q = query(contentCollectionRef, orderBy("dateAdded", "desc"), limit(100));
+            } catch (error) {
+                console.warn("Champ dateAdded non trouvé, chargement sans tri:", error);
+                q = query(contentCollectionRef, limit(100));
+            }
 
             onSnapshot(q, (snapshot) => {
                 window.allContent = []; // Clear previous content
@@ -222,6 +238,9 @@
                 });
             }, (error) => {
                 console.error("Erreur lors de la récupération des nouveautés:", error);
+                console.error("Code d'erreur:", error.code);
+                console.error("Message d'erreur:", error.message);
+                console.error("Détails:", error);
             });
         };
 
