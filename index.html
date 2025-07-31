@@ -219,8 +219,12 @@
 
             onSnapshot(q, (snapshot) => {
                 window.allContent = []; // Clear previous content
+                console.log(`Snapshot reçu avec ${snapshot.size} documents`);
+                
                 snapshot.forEach((doc) => {
-                    window.allContent.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    console.log(`Document ${doc.id}:`, data);
+                    window.allContent.push({ id: doc.id, ...data });
                 });
                 console.log(`Récupération réussie: ${window.allContent.length} documents trouvés`);
                 

@@ -212,19 +212,18 @@
             // Path for all content, ordered by date (newest first)
             const contentCollectionRef = collection(window.db, `all_films_series`);
             
-            // Try to order by dateAdded, but fallback to no ordering if field doesn't exist
-            let q;
-            try {
-                q = query(contentCollectionRef, orderBy("dateAdded", "desc"), limit(100));
-            } catch (error) {
-                console.warn("Champ dateAdded non trouvé, chargement sans tri:", error);
-                q = query(contentCollectionRef, limit(100));
-            }
+            // For now, load all content without ordering to see if there's any data
+            console.log("Tentative de chargement de tous les documents...");
+            const q = query(contentCollectionRef, limit(100));
 
             onSnapshot(q, (snapshot) => {
                 window.allContent = []; // Clear previous content
+                console.log(`Snapshot reçu avec ${snapshot.size} documents`);
+                
                 snapshot.forEach((doc) => {
-                    window.allContent.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    console.log(`Document ${doc.id}:`, data);
+                    window.allContent.push({ id: doc.id, ...data });
                 });
                 console.log(`Récupération réussie: ${window.allContent.length} nouveautés trouvées`);
                 
