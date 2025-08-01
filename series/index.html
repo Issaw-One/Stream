@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PafStreaming - Séries</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -27,14 +27,12 @@
         window.app = null;
         window.db = null;
         window.auth = null;
-        window.userId = null; 
+        window.userId = null;
 
         // Pagination variables
         window.currentPage = 1;
-        window.itemsPerPage = 20; // Reduced for mobile - display 20 items per page
+        window.itemsPerPage = 40; // Display 40 items per page
         window.allContent = []; // To store all fetched series
-        window.favorites = []; // To store user favorites
-        window.showingFavorites = false; // To track if we're showing favorites
 
         // Initialize Firebase and set up authentication
         const initFirebase = async () => {
@@ -49,11 +47,11 @@
                     if (user) {
                         window.userId = user.uid;
                         console.log("Utilisateur authentifié pour le frontend:", window.userId);
-                        window.setupContentListener(); 
+                        window.setupContentListener();
                     } else {
-                        window.userId = crypto.randomUUID(); 
+                        window.userId = crypto.randomUUID();
                         console.log("Utilisateur anonyme pour le frontend. ID généré:", window.userId);
-                        window.setupContentListener(); 
+                        window.setupContentListener();
                     }
                 });
             } catch (error) {
@@ -63,165 +61,25 @@
 
         window.addEventListener('load', initFirebase);
 
-        // Mobile menu functionality
-        window.toggleMobileMenu = () => {
-            const mobileMenu = document.getElementById('mobileMenu');
-            const hamburger = document.getElementById('hamburger');
-            const isOpen = mobileMenu.classList.contains('translate-x-0');
-            
-            if (isOpen) {
-                mobileMenu.classList.remove('translate-x-0');
-                mobileMenu.classList.add('-translate-x-full');
-                hamburger.classList.remove('open');
-            } else {
-                mobileMenu.classList.remove('-translate-x-full');
-                mobileMenu.classList.add('translate-x-0');
-                hamburger.classList.add('open');
-            }
-        };
-
-        // Close mobile menu when clicking outside
-        window.closeMobileMenu = () => {
-            const mobileMenu = document.getElementById('mobileMenu');
-            const hamburger = document.getElementById('hamburger');
-            mobileMenu.classList.remove('translate-x-0');
-            mobileMenu.classList.add('-translate-x-full');
-            hamburger.classList.remove('open');
-        };
-
-        // Add event listener for favorites button
-        document.addEventListener('DOMContentLoaded', () => {
-            const favoritesButton = document.getElementById('favoritesButton');
-            if (favoritesButton) {
-                favoritesButton.addEventListener('click', window.toggleFavoritesView);
-            }
-
-            // Close mobile menu when clicking on a link
-            document.querySelectorAll('#mobileMenu a').forEach(link => {
-                link.addEventListener('click', window.closeMobileMenu);
-            });
-        });
-
-        // Function to load user favorites
-        window.loadFavorites = async () => {
-            try {
-                const storedFavorites = localStorage.getItem('pafstreaming_favorites');
-                window.favorites = storedFavorites ? JSON.parse(storedFavorites) : [];
-                console.log(`Favoris chargés: ${window.favorites.length} favoris trouvés`);
-            } catch (error) {
-                console.error("Erreur lors du chargement des favoris:", error);
-                window.favorites = [];
-            }
-        };
-
-        // Function to toggle favorites view
-        window.toggleFavoritesView = () => {
-            window.showingFavorites = !window.showingFavorites;
-            const favoritesButton = document.getElementById('favoritesButton');
-            const seriesLink = document.querySelector('a[href="https://stream-swart-five.vercel.app/series"]');
-            
-            if (window.showingFavorites) {
-                // Remove active class from Series and add to Favoris
-                seriesLink.classList.remove('active-link');
-                favoritesButton.classList.add('text-neon-blue', 'font-bold', 'active-link');
-                window.displayFavoriteContent();
-            } else {
-                // Remove active class from Favoris and add to Series
-                favoritesButton.classList.remove('text-neon-blue', 'font-bold', 'active-link');
-                seriesLink.classList.add('active-link');
-                window.displayContentCards(window.allContent);
-            }
-        };
-
-        // Function to display favorite content
-        window.displayFavoriteContent = () => {
-            if (window.favorites.length === 0) {
-                const contentGrid = document.getElementById('contentGrid');
-                contentGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Aucun favori pour le moment.</p>`;
-                return;
-            }
-            
-            // Filter content to show only favorites
-            const favoriteContent = window.allContent.filter(content => window.favorites.includes(content.id));
-            
-            window.displayContentCards(favoriteContent);
-        };
-
-        // Function to add/remove from favorites
-        window.toggleFavorite = async (contentId) => {
-            try {
-                const index = window.favorites.indexOf(contentId);
-                
-                if (index > -1) {
-                    // Remove from favorites
-                    window.favorites.splice(index, 1);
-                    console.log(`Retiré des favoris: ${contentId}`);
-                } else {
-                    // Add to favorites
-                    window.favorites.push(contentId);
-                    console.log(`Ajouté aux favoris: ${contentId}`);
-                }
-                
-                // Save to localStorage
-                localStorage.setItem('pafstreaming_favorites', JSON.stringify(window.favorites));
-                
-                // Update display if showing favorites
-                if (window.showingFavorites) {
-                    window.displayFavoriteContent();
-                } else {
-                    // Update the specific card's favorite button
-                    const card = document.querySelector(`[data-id="${contentId}"]`);
-                    if (card) {
-                        const favoriteButton = card.querySelector('svg');
-                        if (favoriteButton) {
-                            if (window.isFavorite(contentId)) {
-                                favoriteButton.classList.add('fill-red-500');
-                                favoriteButton.classList.remove('fill-none');
-                            } else {
-                                favoriteButton.classList.remove('fill-red-500');
-                                favoriteButton.classList.add('fill-none');
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Erreur lors de la modification des favoris:", error);
-            }
-        };
-
-        // Function to check if content is favorite
-        window.isFavorite = (contentId) => {
-            return window.favorites.includes(contentId);
-        };
-
-        // Function to set up real-time content listener for series
+        // Function to set up real-time content listener for the series page
         window.setupContentListener = () => {
             if (!window.db || !window.userId) {
                 console.warn("Firestore ou userId non prêts pour l'écouteur de contenu.");
                 return;
             }
 
-            // Path for series only
             const contentCollectionRef = collection(window.db, `all_films_series`);
-            const q = query(contentCollectionRef, where("type", "==", "serie"));
+            // Filter by type 'serie'
+            const q = query(contentCollectionRef, where('type', '==', 'serie'));
 
             onSnapshot(q, (snapshot) => {
                 window.allContent = []; // Clear previous content
                 snapshot.forEach((doc) => {
                     window.allContent.push({ id: doc.id, ...doc.data() });
                 });
-                console.log(`Récupération réussie: ${window.allContent.length} séries trouvées`);
-                
-                // Load favorites after content is loaded
-                window.loadFavorites().then(() => {
-                    if (window.showingFavorites) {
-                        window.displayFavoriteContent();
-                    } else {
-                        window.displayContentCards(window.allContent);
-                    }
-                });
+                window.displayContentCards(window.allContent); // Display content for the current page
             }, (error) => {
-                console.error("Erreur lors de la récupération des séries:", error);
+                console.error("Erreur lors de la récupération des contenus:", error);
             });
         };
 
@@ -267,20 +125,11 @@
                 card.setAttribute('data-genre', content.genre ? (Array.isArray(content.genre) ? content.genre.join(', ') : content.genre) : 'N/A');
                 card.onclick = () => window.navigateToDetail(content.id);
 
-                const isFav = window.isFavorite(content.id);
                 card.innerHTML = `
-                    <div class="relative">
-                        <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-64 sm:h-72 md:h-80 object-cover rounded-t-lg" loading="lazy">
-                        <button class="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all duration-200 touch-manipulation" 
-                                onclick="event.stopPropagation(); window.toggleFavorite('${content.id}')">
-                            <svg class="w-5 h-5 ${isFav ? 'fill-red-500' : 'fill-none'}" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="p-3 sm:p-4">
-                        <h3 class="text-sm sm:text-base md:text-lg font-semibold text-white truncate line-clamp-2">${content.title}</h3>
-                        <p class="text-gray-400 text-xs sm:text-sm">Série</p>
+                    <img src="${content.posterUrl || 'https://placehold.co/224x300/333/EEE?text=Affiche+Manquante'}" alt="${content.title}" class="w-full h-80 object-cover rounded-t-lg" loading="lazy">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-white truncate line-clamp-2">${content.title}</h3>
+                        <p class="text-gray-400 text-sm">${content.type === 'serie' ? 'Série' : 'Film'}</p>
                     </div>
                 `;
                 contentGrid.appendChild(card);
@@ -300,14 +149,14 @@
 
             // Previous button
             const prevButton = document.createElement('button');
-            prevButton.className = `mx-1 px-2 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${window.currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+            prevButton.className = `mx-1 px-4 py-2 rounded-lg ${window.currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
             prevButton.textContent = 'Précédent';
             prevButton.disabled = window.currentPage === 1;
             prevButton.onclick = () => window.goToPage(window.currentPage - 1);
             paginationControls.appendChild(prevButton);
 
-            // Page numbers (show fewer on mobile)
-            const maxPageButtons = window.innerWidth < 768 ? 3 : 5; // Max number of page buttons to show
+            // Page numbers
+            const maxPageButtons = 5; // Max number of page buttons to show
             let startPage = Math.max(1, window.currentPage - Math.floor(maxPageButtons / 2));
             let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
 
@@ -317,7 +166,7 @@
 
             for (let i = startPage; i <= endPage; i++) {
                 const pageButton = document.createElement('button');
-                pageButton.className = `mx-1 px-2 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${window.currentPage === i ? 'bg-blue-700 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`;
+                pageButton.className = `mx-1 px-4 py-2 rounded-lg ${window.currentPage === i ? 'bg-blue-700 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`;
                 pageButton.textContent = i;
                 pageButton.onclick = () => window.goToPage(i);
                 paginationControls.appendChild(pageButton);
@@ -325,7 +174,7 @@
 
             // Next button
             const nextButton = document.createElement('button');
-            nextButton.className = `mx-1 px-2 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${window.currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+            nextButton.className = `mx-1 px-4 py-2 rounded-lg ${window.currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
             nextButton.textContent = 'Suivant';
             nextButton.disabled = window.currentPage === totalPages;
             nextButton.onclick = () => window.goToPage(window.currentPage + 1);
@@ -351,7 +200,7 @@
 
         // Function to navigate to detail page (made global)
         window.navigateToDetail = (contentId) => {
-            window.location.href = `../detail.html?id=${contentId}`;
+            window.location.href = `detail.html?id=${contentId}`;
         };
     </script>
     <style>
@@ -359,7 +208,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #1a202c; /* Dark background color */
             color: #e2e8f0; /* Light text color */
-            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         }
         .text-neon-blue {
             color: #4dc0b5; /* A color resembling neon blue */
@@ -398,41 +246,6 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
-        
-        /* Mobile menu styles */
-        .mobile-menu {
-            transition: transform 0.3s ease-in-out;
-        }
-        
-        /* Hamburger menu animation */
-        .hamburger {
-            transition: all 0.3s ease-in-out;
-        }
-        .hamburger.open .line:nth-child(1) {
-            transform: rotate(45deg) translate(5px, 5px);
-        }
-        .hamburger.open .line:nth-child(2) {
-            opacity: 0;
-        }
-        .hamburger.open .line:nth-child(3) {
-            transform: rotate(-45deg) translate(7px, -6px);
-        }
-        
-        /* Touch-friendly button sizes */
-        .touch-target {
-            min-height: 44px;
-            min-width: 44px;
-        }
-        
-        /* Optimize for mobile performance */
-        @media (max-width: 768px) {
-            .content-card {
-                transform: none;
-            }
-            .content-card:active {
-                transform: scale(0.98);
-            }
-        }
     </style>
 </head>
 <body class="antialiased">
@@ -440,111 +253,43 @@
         <!-- Navigation Header -->
         <header class="bg-gray-900 shadow-lg p-4 flex justify-between items-center fixed w-full z-10">
             <div class="flex items-center space-x-4">
-                <span class="text-xl sm:text-2xl font-bold text-white uppercase tracking-wider">
-                    <a href="https://stream-swart-five.vercel.app/">PafStreaming</a>
-                </span>
+                <span class="text-2xl font-bold text-white uppercase tracking-wider"><a href="https://stream-swart-five.vercel.app/">PafStreaming</a></span>
             </div>
-            
-            <!-- Desktop Navigation -->
-            <nav class="hidden lg:flex space-x-6">
-                <a href="https://stream-swart-five.vercel.app/" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
+            <nav class="hidden md:flex space-x-6">
+                <a href="https://stream-swart-five.vercel.app" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Accueil</a>
                 <a href="https://stream-swart-five.vercel.app/films" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Films</a>
                 <a href="https://stream-swart-five.vercel.app/series" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 active-link">Séries</a>
                 <a href="https://stream-swart-five.vercel.app/nouveautes" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2">Nouveautés</a>
-                <button id="favoritesButton" class="text-gray-300 hover:text-white transition-colors duration-200 rounded-lg p-2 flex items-center space-x-1">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                    </svg>
-                    <span>Favoris</span>
-                </button>
             </nav>
-            
-            <div class="flex items-center space-x-2 sm:space-x-4">
-                <!-- Search Bar - Hidden on very small screens -->
-                <div class="hidden sm:block">
-                    <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-32 sm:w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                </div>
-                
-                <!-- Telegram Button -->
-                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg shadow-md transition-colors duration-200 text-xs sm:text-sm">
-                    <a href="https://t.me/PafStreamingchat">TELEGRAM</a>
-                </button>
-                
-                <!-- Mobile Menu Button -->
-                <button id="hamburger" class="lg:hidden text-gray-300 hover:text-white touch-target" onclick="window.toggleMobileMenu()">
-                    <div class="line w-6 h-0.5 bg-current mb-1"></div>
-                    <div class="line w-6 h-0.5 bg-current mb-1"></div>
-                    <div class="line w-6 h-0.5 bg-current"></div>
-                </button>
+            <div class="flex items-center space-x-4">
+                <input type="text" id="searchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-40 md:w-64 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"> <a href="https://t.me/PafStreamingchat">TELEGRAM</a></button>
+                <button class="text-gray-300 hover:text-white md:hidden"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 10h18M3 15h18M3 20h18" /></svg></button>
             </div>
         </header>
 
-        <!-- Mobile Menu Overlay -->
-        <div id="mobileMenu" class="lg:hidden fixed inset-0 z-20 bg-black bg-opacity-50 mobile-menu -translate-x-full">
-            <div class="bg-gray-900 w-80 h-full shadow-xl">
-                <div class="p-4 border-b border-gray-700">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xl font-bold text-white">Menu</span>
-                        <button onclick="window.closeMobileMenu()" class="text-gray-300 hover:text-white">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
+        <!-- Main Section / Hero Section -->
+        <main class="flex-grow pt-20">
+            <!-- Series Grid -->
+            <section class="p-8">
+                <h2 class="text-3xl font-bold mb-6 text-white">Toutes les Séries</h2>
+                
+                <div class="relative">
+                    <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
+                        <!-- Series will be dynamically loaded here by Firestore listener -->
+                        <p class="col-span-full text-center text-gray-500">Chargement des séries...</p>
                     </div>
                 </div>
-                
-                <!-- Mobile Search -->
-                <div class="p-4 border-b border-gray-700">
-                    <input type="text" id="mobileSearchBar" onkeyup="window.filterContent()" placeholder="Rechercher..." class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <!-- Mobile Navigation -->
-                <nav class="p-4 space-y-4">
-                    <a href="https://stream-swart-five.vercel.app/" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Accueil</a>
-                    <a href="https://stream-swart-five.vercel.app/films" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Films</a>
-                    <a href="https://stream-swart-five.vercel.app/series" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg active-link">Séries</a>
-                    <a href="https://stream-swart-five.vercel.app/nouveautes" class="block text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg">Nouveautés</a>
-                    <button id="mobileFavoritesButton" class="w-full text-left text-gray-300 hover:text-white transition-colors duration-200 py-3 px-4 rounded-lg flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        <span>Favoris</span>
-                    </button>
-                </nav>
-            </div>
-        </div>
-
-        <!-- Main Section -->
-        <main class="flex-grow pt-20"> <!-- Added padding-top to avoid overlap with fixed header -->
-            <!-- Hero Section -->
-            <section class="relative bg-cover bg-center h-64 sm:h-80 md:h-96 flex items-end p-4 sm:p-8 rounded-lg shadow-lg mb-4 sm:mb-8" style="background-image: url('https://images.unsplash.com/photo-1594909122845-11baa439b7bf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');">
-                <div class="absolute inset-0 gradient-overlay rounded-lg"></div>
-                <div class="z-0">
-                    <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-4">Séries</h1>
-                    <p class="text-sm sm:text-base md:text-lg text-gray-300 max-w-xl mb-4 sm:mb-6 hidden sm:block">
-                        Découvrez notre collection complète de séries en streaming gratuit. Des séries populaires aux nouveautés, tout est disponible ici.
-                    </p>
-                </div>
-            </section>
-
-            <!-- Series Section -->
-            <section class="p-4 sm:p-8">
-                <h2 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-white">Toutes les Séries</h2>
-                
-                <div id="contentGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6 pb-4">
-                    <!-- Content will be dynamically loaded here by Firestore listener -->
-                    <p class="col-span-full text-center text-gray-500">Chargement des séries...</p>
-                </div>
-                <div id="paginationControls" class="flex justify-center mt-4 sm:mt-8 flex-wrap gap-2">
+                <div id="paginationControls" class="flex justify-center mt-8">
                     <!-- Pagination buttons will be rendered here -->
                 </div>
             </section>
         </main>
 
         <!-- Footer (optional) -->
-        <footer class="bg-gray-900 p-4 sm:p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
-            <p class="text-sm sm:text-base">&copy; 2025 PafStreaming. Tous droits réservés.</p>
-            <p class="text-xs sm:text-sm">Ce site n'héberge auccun films et séries.</p>
+        <footer class="bg-gray-900 p-6 text-center text-gray-400 rounded-t-lg shadow-inner">
+            <p>&copy; 2025 PafStreaming. Tous droits réservés.</p>
+            <p>Ce site n'héberge aucun films et séries.</p>
         </footer>
     </div>
 </body>
